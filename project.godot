@@ -23,6 +23,12 @@ window/size/window_width_override=1440
 window/size/window_height_override=810
 window/stretch/mode="canvas_items"
 
+[file_customization]
+
+folder_colors={
+"res://Player/": "red"
+}
+
 [input]
 
 left={

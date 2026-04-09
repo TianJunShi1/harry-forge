@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dgjrbwlwhdtny"]
+
+[sub_resource type="Gradient" id="Gradient_hvfyp"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_l8h54"]
+gradient = SubResource("Gradient_hvfyp")
+width = 18
+height = 32
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hvfyp"]
+size = Vector2(16, 28)
+
+[node name="Player" type="CharacterBody2D" unique_id=330197014]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1340295928]
+position = Vector2(0, -16)
+texture = SubResource("GradientTexture2D_l8h54")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=923999458]
+position = Vector2(0, -14)
+shape = SubResource("RectangleShape2D_hvfyp")
