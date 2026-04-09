@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://dgjrbwlwhdtny"]
 
+[ext_resource type="Script" uid="uid://cgrcn4buuu0ng" path="res://Player/Scripts/player.gd" id="1_l8h54"]
+
 [sub_resource type="Gradient" id="Gradient_hvfyp"]
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1)
 
@@ -12,6 +14,7 @@ height = 32
 size = Vector2(16, 28)
 
 [node name="Player" type="CharacterBody2D" unique_id=330197014]
+script = ExtResource("1_l8h54")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1340295928]
 position = Vector2(0, -16)
