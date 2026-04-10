@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://dgjrbwlwhdtny"]
 
 [ext_resource type="Script" uid="uid://cgrcn4buuu0ng" path="res://Player/Scripts/player.gd" id="1_l8h54"]
+[ext_resource type="Script" uid="uid://bro4nsstvllxs" path="res://Player/States/Idle.gd" id="2_4ntmi"]
+[ext_resource type="Script" uid="uid://b7l5lpxdsyacd" path="res://Player/States/Run.gd" id="3_btcbx"]
 
 [sub_resource type="Gradient" id="Gradient_hvfyp"]
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1)
@@ -23,3 +25,11 @@ texture = SubResource("GradientTexture2D_l8h54")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=923999458]
 position = Vector2(0, -14)
 shape = SubResource("RectangleShape2D_hvfyp")
+
+[node name="states" type="Node" parent="." unique_id=804292152]
+
+[node name="Idle" type="Node" parent="states" unique_id=2125863475]
+script = ExtResource("2_4ntmi")
+
+[node name="Run" type="Node" parent="states" unique_id=219716605]
+script = ExtResource("3_btcbx")
