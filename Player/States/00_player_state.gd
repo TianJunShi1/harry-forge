@@ -3,6 +3,10 @@ class_name Playerstate extends Node
 
 # 缓存的玩家节点引用，由 Player 在 _ready 时自动赋值
 var player : Player
+#region ///
+
+#endregion
+
 
 #region /// 核心状态生命周期
 ## 当这个状态第一次被收集并初始化时执行（只执行一次）

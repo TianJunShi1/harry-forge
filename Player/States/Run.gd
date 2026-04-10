@@ -1,30 +1,52 @@
+@icon("res://icon/state.svg")
 class_name PlayerstateRun extends Playerstate
+
+# --- 节点与状态引用 ---
+@onready var idle_state: PlayerstateIdle = %Idle
+@onready var anim: AnimatedSprite2D = $"../../AnimatedSprite2D" 
+
+var move_speed: float = 150.0
 
 
 #region /// 核心状态生命周期
-## 当这个状态第一次被收集并初始化时执行（只执行一次）
 func init() -> void:
 	pass
 
-## 当进入这个状态时执行
 func enter() -> void:
-	pass
+	# 【修复关键 1】：在进入状态的第一时间，立刻同步朝向！
+	update_facing_direction()
+	if anim:
+		anim.play("run")
 
-## 当退出这个状态时执行
 func exit() -> void:
 	pass
 #endregion
 
+
 #region /// 帧更新与输入处理
-## 处理输入事件。返回目标 Playerstate 以切换状态，返回 null 保持当前状态。
 func handle_input(_event : InputEvent) -> Playerstate:
 	return null
 
-## 渲染帧更新（_process）。返回目标 Playerstate 以切换状态，返回 null 保持当前状态。
 func process(_delta: float) -> Playerstate:
+	# 【修复关键 2】：将翻转逻辑放在 _process 渲染帧里，保证画面永远不会掉队
+	update_facing_direction()
 	return null
 
-## 物理帧更新（_physics_process）。返回目标 Playerstate 以切换状态，返回 null 保持当前状态。
 func physics_process(_delta: float) -> Playerstate:
+	# 1. 检查状态切换
+	if player.direction.x == 0:
+		return idle_state
+		
+	# 2. 纯粹处理物理移动
+	player.velocity.x = player.direction.x * move_speed
+		
 	return null
 #endregion
+
+
+# 【新增】提取出一个专门的方法来处理朝向，代码更整洁
+func update_facing_direction() -> void:
+	if player.direction.x < 0:
+		anim.flip_h = true   # 向左走，水平翻转
+	elif player.direction.x > 0:
+		anim.flip_h = false  # 向右走，不翻转
