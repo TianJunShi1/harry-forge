@@ -175,6 +175,8 @@ script = ExtResource("2_4ntmi")
 unique_name_in_owner = true
 script = ExtResource("3_btcbx")
 
+[node name="Node" type="Node" parent="states" unique_id=1737070005]
+
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=579198571]
 position = Vector2(0, -16)
 sprite_frames = SubResource("SpriteFrames_btcbx")
