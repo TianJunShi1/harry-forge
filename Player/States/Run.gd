@@ -3,6 +3,8 @@ class_name PlayerstateRun extends Playerstate
 
 # --- 节点与状态引用 ---
 @onready var idle_state: PlayerstateIdle = %Idle
+@onready var jump_state: PlayerstateJump = %Jump
+@onready var fall_state: PlayerstateFall = %Fall
 @onready var anim: AnimatedSprite2D = $"../../AnimatedSprite2D" 
 
 var move_speed: float = 150.0
@@ -25,6 +27,9 @@ func exit() -> void:
 
 #region /// 帧更新与输入处理
 func handle_input(_event : InputEvent) -> Playerstate:
+	# 如果按下了跳跃键，且在地面上，切换到跳跃状态
+	if _event.is_action_pressed("ui_accept") and player.is_on_floor():
+		return jump_state
 	return null
 
 func process(_delta: float) -> Playerstate:
@@ -33,6 +38,10 @@ func process(_delta: float) -> Playerstate:
 	return null
 
 func physics_process(_delta: float) -> Playerstate:
+	# 如果突然不在地面上了（比如走出了平台边缘），立刻切换到下落状态
+	if not player.is_on_floor():
+		return fall_state
+	# ... 下面保留你原本的移动逻辑 ...
 	# 1. 检查状态切换
 	if player.direction.x == 0:
 		return idle_state
