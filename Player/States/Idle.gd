@@ -6,6 +6,7 @@ class_name PlayerstateIdle extends Playerstate
 @onready var jump_state: PlayerstateJump = %Jump
 @onready var fall_state: PlayerstateFall = %Fall
 @onready var anim: AnimatedSprite2D = $"../../AnimatedSprite2D" # 请确保节点名称对应
+@onready var crouch_state: Playerstate = %Crouch
 
 
 #region /// 核心状态生命周期
@@ -41,6 +42,9 @@ func physics_process(_delta: float) -> Playerstate:
 	# 如果突然不在地面上了（比如走出了平台边缘），立刻切换到下落状态
 	if not player.is_on_floor():
 		return fall_state
+	# --- 新增：检测下蹲（S键） ---
+	if player.direction.y > 0:
+		return crouch_state
 	# ... 下面保留你原本的移动逻辑 ...
 	# 1. 检查是否有左右方向输入，如果有，切换到跑动状态
 	if player.direction.x != 0:
