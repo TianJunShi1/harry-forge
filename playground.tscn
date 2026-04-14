@@ -37,13 +37,23 @@ texture = SubResource("GradientTexture2D_rupst")
 shape = SubResource("RectangleShape2D_edjgo")
 
 [node name="Block3" type="Sprite2D" parent="." unique_id=2146035355]
-position = Vector2(332.00003, 199)
-scale = Vector2(4.3274975, 1)
+position = Vector2(332, 179.00002)
+scale = Vector2(1, 2.860491)
 texture = SubResource("GradientTexture2D_rupst")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="Block3" unique_id=1547080523]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Block3/StaticBody2D" unique_id=752968957]
+shape = SubResource("RectangleShape2D_edjgo")
+
+[node name="Block4" type="Sprite2D" parent="." unique_id=951693416]
+position = Vector2(158.00002, 192)
+scale = Vector2(3.5600002, 0.98049223)
+texture = SubResource("GradientTexture2D_rupst")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="Block4" unique_id=2054066675]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Block4/StaticBody2D" unique_id=1835313068]
 shape = SubResource("RectangleShape2D_edjgo")
 
 [node name="Player" parent="." unique_id=330197014 instance=ExtResource("1_rupst")]

@@ -8,12 +8,14 @@ var all_states : Array[Playerstate] = []
 
 #region /// Standard Variables
 var direction : Vector2 = Vector2.ZERO
-var gravity : float = 900
+
+# --- 重力与手感调整参数 ---
+var gravity : float = 900.0
+var fall_gravity_multiplier : float = 1.8 # 下落时的重力倍数（1.8表示下落重力是上升的1.8倍）
+var max_fall_speed : float = 700.0        # 最大下落速度（终端速度），防止速度过快穿透地板
 #endregion
 
 @onready var states_node: Node = $states 
-
-# 【新增】获取 Label 节点 (假设你的 Label 节点名字就叫 "Label")
 @onready var state_label: Label = $Label 
 
 func _ready() -> void:
@@ -24,9 +26,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		change_state(current_state.handle_input(event))
 
 func _physics_process(delta: float) -> void:
-	velocity.y += gravity * delta
+	# 【核心修改区：不对称重力】
+	if velocity.y > 0:
+		# 正在下落：施加经过倍数放大的重力，让角色迅速坠落
+		velocity.y += gravity * fall_gravity_multiplier * delta
+	else:
+		# 正在上升（跳跃阶段）：施加正常的基础重力，让角色在空中停留更久
+		velocity.y += gravity * delta
+		
+	# 限制最大下落速度，防止角色像炮弹一样砸穿地板碰撞体
+	velocity.y = min(velocity.y, max_fall_speed)
+
+	# 执行状态机的更新
 	if current_state:
 		change_state(current_state.physics_process(delta))
+		
 	move_and_slide()
 	
 func _process(delta: float) -> void:
@@ -60,7 +74,6 @@ func change_state(new_state : Playerstate) -> void:
 	current_state = new_state
 	current_state.enter()
 	
-	# 【新增】更新 Label 显示当前状态的名字
 	if state_label:
 		state_label.text = current_state.name
 
