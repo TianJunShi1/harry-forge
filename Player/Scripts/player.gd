@@ -81,3 +81,16 @@ func update_direction() -> void:
 	var x_axis = Input.get_axis("left","right")
 	var y_axis = Input.get_axis("up","down")
 	direction = Vector2(x_axis,y_axis)
+	
+# 暴露给外部环境调用的方法：施加弹跳
+func apply_bounce(force: float) -> void:
+	# 1. 赋予弹射速度
+	velocity.y = -force
+	
+	# 2. 找到跳跃状态，打上“弹飞”标记，并切换过去
+	# 注意这里加入了 state.is_bouncing = true
+	for state in all_states:
+		if state is PlayerstateJump:
+			state.is_bouncing = true 
+			change_state(state)
+			break

@@ -26,6 +26,7 @@ window/stretch/mode="canvas_items"
 [file_customization]
 
 folder_colors={
+"res://Interactable/": "orange",
 "res://Player/": "red",
 "res://icon/": "gray"
 }
@@ -78,8 +79,10 @@ dash={
 
 [layer_names]
 
-2d_physics/layer_1="Ground"
-2d_physics/layer_2="OneWayPlatform"
+2d_physics/layer_1="Player"
+2d_physics/layer_2="Ground"
+2d_physics/layer_3="OneWayPlatform"
+2d_physics/layer_4="BouncePad"
 
 [physics]
 

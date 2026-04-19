@@ -41,7 +41,6 @@ func physics_process(_delta: float) -> Playerstate:
 	# 如果突然不在地面上了（比如走出了平台边缘），立刻切换到下落状态
 	if not player.is_on_floor():
 		return fall_state
-	# ... 下面保留你原本的移动逻辑 ...
 	# 1. 检查状态切换
 	if player.direction.x == 0:
 		return idle_state

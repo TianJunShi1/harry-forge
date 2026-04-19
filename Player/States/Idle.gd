@@ -8,7 +8,7 @@ class_name PlayerstateIdle extends Playerstate
 @onready var fall_state: Playerstate = %Fall
 @onready var anim: AnimatedSprite2D = $"../../AnimatedSprite2D"
 
-# 地面摩擦力（数值越小，滑行越远。600 是一个微微滑行的舒适值）
+# 地面摩擦力
 var friction: float = 800.0 
 
 
@@ -17,7 +17,6 @@ func init() -> void:
 	pass
 
 func enter() -> void:
-	# 【就是这里刚才被我用占位符搞丢了，现在补回来了！】
 	if anim:
 		anim.play("idle")
 

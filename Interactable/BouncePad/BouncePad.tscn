@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://bc5woagptill0"]
+
+[ext_resource type="Script" uid="uid://c2oufdvwwjpwg" path="res://Interactable/BouncePad/Scripts/bounce_pad.gd" id="1_64u65"]
+
+[sub_resource type="Gradient" id="Gradient_rupst"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0.9, 0.13499998, 0.13499998, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1obpa"]
+gradient = SubResource("Gradient_rupst")
+fill_to = Vector2(0, 1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_64u65"]
+size = Vector2(64, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1obpa"]
+size = Vector2(32, 12)
+
+[node name="BouncePad" type="Area2D" unique_id=1258038184]
+collision_layer = 8
+script = ExtResource("1_64u65")
+
+[node name="BouncePadPlatform" type="Sprite2D" parent="." unique_id=1791703314]
+scale = Vector2(0.5, 0.2)
+texture = SubResource("GradientTexture2D_1obpa")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="BouncePadPlatform" unique_id=1694432264]
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncePadPlatform/StaticBody2D" unique_id=403001761]
+position = Vector2(0, -9.179115e-06)
+shape = SubResource("RectangleShape2D_64u65")
+
+[node name="jiance" type="CollisionShape2D" parent="." unique_id=1968392780]
+position = Vector2(0, -1)
+shape = SubResource("RectangleShape2D_1obpa")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

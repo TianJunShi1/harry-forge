@@ -9,7 +9,7 @@ class_name PlayerstateFall extends Playerstate
 var air_speed: float = 160.0 
 
 # --- 手感调节参数 ---
-var coyote_duration: float = 0.13 # 土狼时间：离开边缘后允许起跳的时间
+var coyote_duration: float = 0.15 # 土狼时间：离开边缘后允许起跳的时间
 var fall_timer: float = 0.0       # 记录下落了多久
 
 var buffer_duration: float = 0.15 # 跳跃缓冲时间：落地前多久按下会被记住
