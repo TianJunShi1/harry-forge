@@ -5,10 +5,10 @@ class_name PlayerstateRun extends Playerstate
 @onready var idle_state: PlayerstateIdle = %Idle
 @onready var jump_state: PlayerstateJump = %Jump
 @onready var fall_state: PlayerstateFall = %Fall
-@onready var anim: AnimatedSprite2D = $"../../AnimatedSprite2D" 
+# 【修改】删除本地 anim 引用，改用 player.anim 统一访问
+# 【修改】删除本地 update_facing_direction()，改用 player.update_facing() 统一管理
 
 var move_speed: float = 150.0
-
 
 #region /// 核心状态生命周期
 func init() -> void:
@@ -16,33 +16,39 @@ func init() -> void:
 
 func enter() -> void:
 	# 【修复关键 1】：在进入状态的第一时间，立刻同步朝向！
-	update_facing_direction()
-	if anim:
-		anim.play("run")
+	# 【修改】改用 player.update_facing()
+	player.update_facing()
+	# 【修改】改用 player.anim，加空判断防止场景重构时报空引用
+	if player.anim:
+		player.anim.play("run")
 
 func exit() -> void:
 	pass
 #endregion
 
-
 #region /// 帧更新与输入处理
 func handle_input(_event : InputEvent) -> Playerstate:
 	# 如果按下了跳跃键，且在地面上，切换到跳跃状态
-	if _event.is_action_pressed("ui_accept") and player.is_on_floor():
+	# 【修改】ui_accept 统一改为 jump
+	# 保留 player.is_on_floor() 理由同 Idle：防止帧时序问题绕过 coyote_timer
+	if _event.is_action_pressed("jump") and player.is_on_floor():
 		return jump_state
 	return null
 
 func process(_delta: float) -> Playerstate:
 	# 【修复关键 2】：将翻转逻辑放在 _process 渲染帧里，保证画面永远不会掉队
-	update_facing_direction()
+	# 【修改】改用 player.update_facing()
+	player.update_facing()
 	return null
 
 func physics_process(_delta: float) -> Playerstate:
 	# 如果突然不在地面上了（比如走出了平台边缘），立刻切换到下落状态
 	if not player.is_on_floor():
 		return fall_state
+		
 	# 1. 检查状态切换
-	if player.direction.x == 0:
+	# 【修改】改用 player.has_horizontal_input()，防止手柄漂移导致无法回到 Idle
+	if not player.has_horizontal_input():
 		return idle_state
 		
 	# 2. 纯粹处理物理移动
@@ -50,11 +56,3 @@ func physics_process(_delta: float) -> Playerstate:
 		
 	return null
 #endregion
-
-
-# 【新增】提取出一个专门的方法来处理朝向，代码更整洁
-func update_facing_direction() -> void:
-	if player.direction.x < 0:
-		anim.flip_h = true   # 向左走，水平翻转
-	elif player.direction.x > 0:
-		anim.flip_h = false  # 向右走，不翻转

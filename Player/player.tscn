@@ -361,9 +361,10 @@ animations = [{
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_5htga"]
 
-[node name="Player" type="CharacterBody2D" unique_id=330197014]
+[node name="Player" type="CharacterBody2D" unique_id=330197014 node_paths=PackedStringArray("initial_state")]
 collision_mask = 15
 script = ExtResource("1_l8h54")
+initial_state = NodePath("states/Idle")
 
 [node name="states" type="Node" parent="." unique_id=804292152]
 
@@ -412,5 +413,4 @@ collision_mask = 4
 position = Vector2(0, -35)
 
 [node name="Camera2D" type="Camera2D" parent="CameraTarget" unique_id=31391260]
-position_smoothing_enabled = true
 position_smoothing_speed = 12.0
