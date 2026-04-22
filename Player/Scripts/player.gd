@@ -35,17 +35,21 @@ var coyote_duration : float = 0.15    # 土狼时间窗口长度（秒）
 
 #region /// 🎬 Camera Variables (摄影机预视系统)
 @export_group("Camera Look Ahead")
-@export var look_ahead_distance_x: float = 45.0     # 水平看多远
-@export var horizontal_deadzone_speed: float = 100.0 # 水平死区阈值（速度大于此值才允许镜头掉头）
-@export var look_ahead_up: float = -80.0             # 跳跃或抬头时往上看多少（负数向上）
-@export var look_ahead_down: float = 80.0            # 下落或下蹲时往下看多少（正数向下）
-@export var camera_smooth_speed: float = 8.0         # 【修改】镜头跟随速度（替换原 Tween，改用 lerp 单一平滑）
+@export var look_ahead_distance_x: float = 50.0     # 水平看多远
+@export var horizontal_deadzone_speed: float = 90.0  # 水平死区阈值（速度大于此值才允许镜头掉头）
+@export var look_ahead_up: float = -15.0             # 跳跃/下落时往上看多少（负数向上）
+@export var look_ahead_down: float = 15.0            # 跳跃/下落时往下看多少（正数向下）
+@export var manual_look_up: float = -90.0            # 【新增】手动抬头时的独立偏移量（负数向上）
+@export var manual_look_down: float = 90.0           # 【新增】手动低头时的独立偏移量（正数向下）
+@export var camera_smooth_speed: float = 2.0         # 镜头跟随速度（lerp 权重基数）
+@export var vertical_smooth_speed: float = 2.0       # 【新增】垂直方向单独平滑速度，减缓跳跃时上下浮动
 @export var vertical_look_delay: float = 0.3         # 按住多久才开始抬头/低头 (例如 0.3秒)
 
 @onready var camera_target: Marker2D = $CameraTarget
-var base_camera_position: Vector2 # 记录编辑器里 Marker2D 的初始位置
-var _last_facing_x: float = 1.0   # 记录角色最后的朝向（1向右，-1向左），用于防止镜头松手回弹
-var _vertical_look_timer: float = 0.0 # 垂直预视的蓄力计时器
+var base_camera_position: Vector2  # 记录编辑器里 Marker2D 的初始位置
+var _last_facing_x: float = 1.0    # 记录角色最后的朝向（1向右，-1向左），用于防止镜头松手回弹
+var _vertical_look_timer: float = 0.0  # 垂直预视的蓄力计时器
+var _current_vertical_offset: float = 0.0  # 【新增】当前垂直偏移的平滑中间值
 #endregion
 
 @onready var states_node: Node = $states 
@@ -129,30 +133,34 @@ func _update_camera_look_ahead(delta: float) -> void:
 		_last_facing_x = sign(velocity.x)
 	target_offset.x += _last_facing_x * look_ahead_distance_x
 		
-	# 2. 垂直预视 (根据物理速度与输入方向)
+	# 2. 垂直预视目标值计算
+	var target_vertical_offset: float = 0.0
 	if velocity.y < -10.0:
 		# 正在上升（跳跃中）
-		target_offset.y += look_ahead_up
+		target_vertical_offset = look_ahead_up
 	elif velocity.y > 10.0:
 		# 正在下落
-		target_offset.y += look_ahead_down
+		target_vertical_offset = look_ahead_down
 	elif is_on_floor():
-		# 在地面上时，支持手动抬头和低头
+		# 在地面上时，使用独立的手动抬头/低头数值
 		if _vertical_look_timer >= vertical_look_delay:
 			if direction.y < -0.5:
-				# 按下 W/向上键
-				target_offset.y += look_ahead_up
+				# 按下 W/向上键，使用独立的 manual_look_up
+				target_vertical_offset = manual_look_up
 			elif direction.y > 0.5:
-				# 按下 S/向下键
-				target_offset.y += look_ahead_down
+				# 按下 S/向下键，使用独立的 manual_look_down
+				target_vertical_offset = manual_look_down
+	
+	# 3. 【新增】垂直方向单独做平滑插值，避免跳跃时镜头上下浮动过于剧烈
+	var t_vertical := minf(vertical_smooth_speed * delta, 1.0)
+	_current_vertical_offset = lerp(_current_vertical_offset, target_vertical_offset, t_vertical)
+	target_offset.y += _current_vertical_offset
 		
-	# 3. 避免目标没有变化时产生无意义的计算
+	# 4. 避免目标没有变化时产生无意义的计算
 	if camera_target.position.is_equal_approx(target_offset):
 		return
 		
-	# 4. 【修改】用 lerp 单一平滑替换原来的 Tween 方案
-	# 原 Tween 方案每帧 kill/create，与 Camera2D 自带 smoothing 叠加会造成双重平滑
-	# 现在只保留这一套 lerp，请确认 Camera2D 的 position_smoothing_enabled 已关闭
+	# 5. 水平方向用 camera_smooth_speed 平滑，垂直已在上方处理
 	# 【修改】clamp 权重上限为 1.0，防止掉帧时插值系数超过 1 导致镜头过冲
 	var t := minf(camera_smooth_speed * delta, 1.0)
 	camera_target.position = camera_target.position.lerp(target_offset, t)
