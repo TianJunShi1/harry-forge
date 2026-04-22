@@ -97,7 +97,7 @@ shape = SubResource("RectangleShape2D_rupst")
 one_way_collision = true
 
 [node name="BouncePad" parent="." unique_id=1258038184 instance=ExtResource("2_wt17y")]
-position = Vector2(81, 101)
+position = Vector2(61, 122)
 
 [node name="Player" parent="." unique_id=330197014 instance=ExtResource("1_rupst")]
 position = Vector2(246, 205)
