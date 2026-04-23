@@ -21,10 +21,7 @@ var fall_gravity_multiplier : float = 1.8 # 下落时的重力倍数（放大重
 var max_fall_speed : float = 600.0        # 最大下落速度（防止穿透平台）
 
 # --- 土狼时间 ---
-# 【修改】用计时器替代布尔标记，更稳定可靠
-# was_on_floor 布尔值在"走出边缘的瞬间"可能已经是 false，导致土狼跳失效
-# 改为在地面时持续重置计时器，离地后自然倒数，Fall 状态直接检查剩余时间
-var was_on_floor : bool = false       # 保留供其他状态参考，但土狼时间本身改用 coyote_timer
+# 在地面时持续重置计时器，离地后自然倒数，Fall 状态直接检查剩余时间
 var coyote_timer : float = 0.0        # 土狼时间倒计时，大于 0 表示仍在土狼时间窗口内
 var coyote_duration : float = 0.15    # 土狼时间窗口长度（秒）
 #endregion
@@ -35,21 +32,23 @@ var coyote_duration : float = 0.15    # 土狼时间窗口长度（秒）
 
 #region /// 🎬 Camera Variables (摄影机预视系统)
 @export_group("Camera Look Ahead")
-@export var look_ahead_distance_x: float = 50.0     # 水平看多远
-@export var horizontal_deadzone_speed: float = 90.0  # 水平死区阈值（速度大于此值才允许镜头掉头）
-@export var look_ahead_up: float = -15.0             # 跳跃/下落时往上看多少（负数向上）
-@export var look_ahead_down: float = 15.0            # 跳跃/下落时往下看多少（正数向下）
-@export var manual_look_up: float = -90.0            # 【新增】手动抬头时的独立偏移量（负数向上）
-@export var manual_look_down: float = 90.0           # 【新增】手动低头时的独立偏移量（正数向下）
-@export var camera_smooth_speed: float = 2.0         # 镜头跟随速度（lerp 权重基数）
-@export var vertical_smooth_speed: float = 2.0       # 【新增】垂直方向单独平滑速度，减缓跳跃时上下浮动
-@export var vertical_look_delay: float = 0.3         # 按住多久才开始抬头/低头 (例如 0.3秒)
+@export var look_ahead_distance_x: float = 50.0      # 水平看多远
+@export var horizontal_deadzone_speed: float = 90.0   # 水平死区阈值（速度大于此值才允许镜头掉头）
+@export var horizontal_return_speed: float = 2.0      # 【新增】停下后镜头回中的速度（越小越慢）
+@export var manual_look_up: float = -20.0             # 手动抬头时的独立偏移量（负数向上）
+@export var manual_look_down: float = 20.0            # 手动低头时的独立偏移量（正数向下）
+@export var camera_smooth_speed: float = 1.0          # 镜头整体跟随速度（lerp 权重基数）
+@export var vertical_smooth_speed: float = 3.0        # 垂直方向单独平滑速度，减缓跳跃时上下浮动
+@export var vertical_deadzone: float = 40.0           # 【新增】垂直软区大小（像素）。角色在此范围内时镜头不追
+@export var vertical_look_delay: float = 0.3          # 按住多久才开始抬头/低头
 
 @onready var camera_target: Marker2D = $CameraTarget
-var base_camera_position: Vector2  # 记录编辑器里 Marker2D 的初始位置
-var _last_facing_x: float = 1.0    # 记录角色最后的朝向（1向右，-1向左），用于防止镜头松手回弹
+var base_camera_position: Vector2       # 记录编辑器里 Marker2D 的初始位置
+var _last_facing_x: float = 0.0        # 【修改】初始值改为 0，停止时回中而非默认偏右
+var _facing_x_target: float = 0.0     # 【新增】水平朝向的目标值，用 lerp 平滑过渡而非瞬切
 var _vertical_look_timer: float = 0.0  # 垂直预视的蓄力计时器
-var _current_vertical_offset: float = 0.0  # 【新增】当前垂直偏移的平滑中间值
+var _current_vertical_offset: float = 0.0  # 当前垂直偏移的平滑中间值
+var _camera_anchor_y: float = 0.0     # 【新增】垂直软区的锚点，只有超出软区才更新
 #endregion
 
 @onready var states_node: Node = $states 
@@ -59,7 +58,10 @@ func _ready() -> void:
 	# 记录运行游戏那一刻，你在编辑器里设定的 Marker2D 位置（实现所见即所得）
 	if camera_target:
 		base_camera_position = camera_target.position
-		
+	
+	# 锚点用世界坐标初始化，和后续 player_y 保持同一坐标系
+	_camera_anchor_y = global_position.y
+	
 	initialize_states()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -87,8 +89,7 @@ func _physics_process(delta: float) -> void:
 		
 	move_and_slide()
 	
-	# 【修改】move_and_slide 之后更新辅助标记和土狼计时器
-	was_on_floor = is_on_floor()
+	# 【修改】move_and_slide 之后更新土狼计时器
 	if is_on_floor():
 		# 在地面时持续重置，保证土狼时间窗口从"离地那一刻"才开始倒数
 		coyote_timer = coyote_duration
@@ -128,40 +129,64 @@ func _update_camera_look_ahead(delta: float) -> void:
 	# 以记录的基准位置为起点
 	var target_offset = base_camera_position
 	
-	# 1. 水平预视 (带有死区与记忆)
+	# -----------------------------------------------
+	# 1. 水平预视（带死区、朝向记忆、停下回中）
+	# -----------------------------------------------
+	# 【逻辑说明】
+	# 原来：速度超阈值就记录朝向，然后永远保持那个方向的偏置
+	# 现在：速度超阈值时，把"目标朝向"设为当前方向（1或-1）
+	#       速度低于阈值时，目标朝向归零（回中）
+	#       用 lerp 平滑过渡，避免镜头瞬间切换
+	# 为什么这样做：停下来时镜头慢慢回中，给玩家更自然的构图感
+	# 追逐场景里一直跑，目标朝向始终是运动方向，前视效果完整保留
 	if abs(velocity.x) > horizontal_deadzone_speed:
-		_last_facing_x = sign(velocity.x)
+		_facing_x_target = sign(velocity.x)
+	else:
+		# 速度低于阈值，目标回中（0 = 居中，不偏任何一侧）
+		_facing_x_target = 0.0
+	
+	# 用 lerp 平滑过渡朝向值，避免镜头"啪"地跳到另一侧
+	var t_facing := minf(horizontal_return_speed * delta, 1.0)
+	_last_facing_x = lerp(_last_facing_x, _facing_x_target, t_facing)
 	target_offset.x += _last_facing_x * look_ahead_distance_x
-		
-	# 2. 垂直预视目标值计算
-	var target_vertical_offset: float = 0.0
-	if velocity.y < -10.0:
-		# 正在上升（跳跃中）
-		target_vertical_offset = look_ahead_up
-	elif velocity.y > 10.0:
-		# 正在下落
-		target_vertical_offset = look_ahead_down
-	elif is_on_floor():
-		# 在地面上时，使用独立的手动抬头/低头数值
+
+	# -----------------------------------------------
+	# 2. 垂直软区（Soft Zone）
+	# -----------------------------------------------
+	# 【修正】统一使用世界坐标
+	# player_y 和 _camera_anchor_y 都是世界坐标，差值 vertical_drift 就是像素偏移
+	# 可以安全叠加到 target_offset.y 上，坐标系完全一致
+	var player_y := global_position.y
+	
+	if player_y < _camera_anchor_y - vertical_deadzone:
+		# 角色跑到软区上方，锚点跟上去
+		_camera_anchor_y = player_y + vertical_deadzone
+	elif player_y > _camera_anchor_y + vertical_deadzone:
+		# 角色跑到软区下方，锚点跟下去
+		_camera_anchor_y = player_y - vertical_deadzone
+	
+	# drift = 角色当前位置超出锚点的量，软区内时为 0，超出时等于超出的像素数
+	var vertical_drift := player_y - _camera_anchor_y
+	
+	# 3. 手动抬头/低头（在软区基础上叠加，保持现有功能）
+	var target_vertical_offset: float = vertical_drift
+	if is_on_floor():
 		if _vertical_look_timer >= vertical_look_delay:
 			if direction.y < -0.5:
-				# 按下 W/向上键，使用独立的 manual_look_up
-				target_vertical_offset = manual_look_up
+				target_vertical_offset += manual_look_up
 			elif direction.y > 0.5:
-				# 按下 S/向下键，使用独立的 manual_look_down
-				target_vertical_offset = manual_look_down
+				target_vertical_offset += manual_look_down
 	
-	# 3. 【新增】垂直方向单独做平滑插值，避免跳跃时镜头上下浮动过于剧烈
+	# 4. 垂直方向平滑插值，避免锚点跳动时镜头硬切
 	var t_vertical := minf(vertical_smooth_speed * delta, 1.0)
 	_current_vertical_offset = lerp(_current_vertical_offset, target_vertical_offset, t_vertical)
 	target_offset.y += _current_vertical_offset
 		
-	# 4. 避免目标没有变化时产生无意义的计算
+	# 5. 避免目标没有变化时产生无意义的计算
 	if camera_target.position.is_equal_approx(target_offset):
 		return
 		
-	# 5. 水平方向用 camera_smooth_speed 平滑，垂直已在上方处理
-	# 【修改】clamp 权重上限为 1.0，防止掉帧时插值系数超过 1 导致镜头过冲
+	# 6. 整体平滑跟随
 	var t := minf(camera_smooth_speed * delta, 1.0)
 	camera_target.position = camera_target.position.lerp(target_offset, t)
 
