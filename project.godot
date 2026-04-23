@@ -27,6 +27,7 @@ window/stretch/mode="canvas_items"
 
 folder_colors={
 "res://Interactable/": "orange",
+"res://Level/": "teal",
 "res://Player/": "red",
 "res://icon/": "gray"
 }

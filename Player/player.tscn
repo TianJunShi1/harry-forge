@@ -413,4 +413,5 @@ collision_mask = 4
 position = Vector2(0, -100)
 
 [node name="Camera2D" type="Camera2D" parent="CameraTarget" unique_id=31391260]
+position = Vector2(0, 30)
 position_smoothing_speed = 12.0

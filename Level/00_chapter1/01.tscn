@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://n23ibv17xmuk"]
+
+[ext_resource type="TileSet" uid="uid://ttxdyeaie8lc" path="res://Level/tileset/Test_Block.tres" id="1_qyxhl"]
+
+[node name="01" type="Node2D" unique_id=159589538]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=683939103]
+tile_set = ExtResource("1_qyxhl")
