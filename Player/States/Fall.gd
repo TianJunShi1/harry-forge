@@ -11,6 +11,7 @@ class_name PlayerstateFall extends Playerstate
 # 【修改】删除 coyote_duration 和 fall_timer，土狼时间已统一由 player.coyote_timer 管理
 var buffer_duration: float = 0.15 # 跳跃缓冲时间：落地前多久按下会被记住
 var buffer_timer: float = 0.0     # 缓冲倒计时器
+var _buffer_used: bool = false    # 【新增】防止空中反复刷新缓冲，缓冲只能激活一次
 
 func init() -> void:
 	pass
@@ -22,6 +23,7 @@ func enter() -> void:
 	# 每次进入下落状态时，重置缓冲计时器
 	# 【修改】fall_timer 已删除，土狼时间由 player.coyote_timer 统一管理
 	buffer_timer = 0.0
+	_buffer_used = false
 
 func exit() -> void:
 	pass
@@ -31,15 +33,16 @@ func handle_input(_event: InputEvent) -> Playerstate:
 	# 同时把 ui_accept 统一改为 jump
 	if _event.is_action_pressed("jump"):
 		# 1. 尝试触发土狼时间（按晚了的宽容）
-		# 【修改】改用 player.coyote_timer，比 was_on_floor 布尔值更可靠
-		# was_on_floor 在走出边缘的瞬间可能已经是 false，导致土狼跳失效
-		# coyote_timer 在地面时持续重置，离地后才开始倒数，窗口判断更准确
+		# 【修改】触发时立刻消费掉 coyote_timer，防止同一段窗口被空中重复利用
 		if player.coyote_timer > 0.0:
+			player.coyote_timer = 0.0
 			return jump_state
 			
 		# 2. 不满足土狼跳，说明是在高空下落时按的
-		# 将这次跳跃输入"记忆"下来，开启跳跃缓冲计时（按早了的宽容）
-		buffer_timer = buffer_duration
+		# 只允许激活一次，防止疯狂按键反复刷新缓冲
+		if not _buffer_used:
+			buffer_timer = buffer_duration
+			_buffer_used = true
 		
 	return null
 

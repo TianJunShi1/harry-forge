@@ -23,6 +23,13 @@ var max_fall_speed : float = 600.0         # 最大下落速度（防止穿透�
 # 土狼时间（在地面时持续重置计时器，离地后自然倒数）
 var coyote_timer : float = 0.0      # 土狼时间倒计时，大于 0 表示仍在土狼时间窗口内
 var coyote_duration : float = 0.15  # 土狼时间窗口长度（秒）
+
+# 单向平台穿透
+# ONE_WAY_PLATFORM_LAYER 对应 Godot 物理层第 3 层（TileSet 里显示的"物理层 1"）
+# 如果你的单向平台层改变了，只需修改这个常量
+const ONE_WAY_PLATFORM_LAYER : int = 3
+@export var drop_through_duration : float = 0.18  # 关闭碰撞的持续时间（秒）
+var drop_through_timer : float = 0.0
 #endregion
 
 #region /// 🎨 Animation Variables (动画节点，统一由 Player 持有)
@@ -35,22 +42,22 @@ var coyote_duration : float = 0.15  # 土狼时间窗口长度（秒）
 # 请确保 Camera2D 自带的 position_smoothing_enabled 是关闭的。
 
 @export_group("Camera / Horizontal")
-@export var look_ahead_distance_x: float = 20.0       # 水平前视距离（更柔和）
+@export var look_ahead_distance_x: float = 20.0       # 水平前视距离
 @export var horizontal_deadzone_speed: float = 110.0  # 速度超过此值才触发方向记忆
 @export var horizontal_turn_speed: float = 3.0        # 转向时前视切换速度（越大越快）
 @export var horizontal_return_speed: float = 0.9      # 停下后回中速度（越小越慢）
 @export var camera_follow_speed_x: float = 4.0        # 水平摄影机整体跟随速度
 
 @export_group("Camera / Vertical")
-@export var vertical_deadzone_up: float = 5.0        # 向上软区大小（小跳更不容易触发）
-@export var vertical_deadzone_down: float = 5.0      # 向下软区大小（略大一点，更容易看到脚下）
-@export var grounded_recenter_speed: float = 1.0      # 落地后锚点归位速度（更柔和，不会明显被拉回）
+@export var vertical_deadzone_up: float = 10.0        # 向上软区大小（小跳更不容易触发）
+@export var vertical_deadzone_down: float = 10.0      # 向下软区大小
+@export var grounded_recenter_speed: float = 1.0      # 落地后锚点归位速度（越大越快回中）
 @export var camera_follow_speed_y: float = 3.0        # 垂直摄影机整体跟随速度
 @export var max_vertical_auto_offset: float = 52.0    # 自动垂直偏移的最大值（防止大落差时镜头飞太远）
 
 @export_group("Camera / Manual Look")
-@export var manual_look_up: float = -14.0             # 手动抬头偏移量（负数向上）
-@export var manual_look_down: float = 16.0            # 手动低头偏移量（正数向下）
+@export var manual_look_up: float = -30.0             # 手动抬头偏移量（负数向上）
+@export var manual_look_down: float = 30.0            # 手动低头偏移量（正数向下）
 @export var vertical_look_delay: float = 0.30         # 按住多久才触发手动抬头/低头（秒）
 
 @export_group("Camera / Air & Fall Assist")
@@ -65,13 +72,13 @@ var base_camera_position: Vector2       # 记录编辑器里 Marker2D 的初始�
 
 # 水平方向状态
 var _look_ahead_sign: float = 0.0       # 当前水平前视的平滑值（-1 到 1）
-var _facing_x_target: float = 0.0       # 水平前视的目标值
+var _facing_x_target: float = 0.0      # 水平前视的目标值
 var _grounded_return_timer: float = 0.0 # 地面停留多久后才允许水平回中
 
 # 垂直方向状态
 var _vertical_look_timer: float = 0.0   # 手动上下看的蓄力计时器
 var _camera_anchor_world_y: float = 0.0 # 垂直软区锚点（世界坐标）
-var _fall_look_offset: float = 0.0      # 当前“额外下看”偏移
+var _fall_look_offset: float = 0.0      # 当前"额外下看"偏移
 
 # 最终叠加到 CameraTarget 本地位置上的平滑偏移
 var _camera_offset_x: float = 0.0
@@ -114,6 +121,12 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# 单向平台穿透计时：时间到了恢复碰撞
+	if drop_through_timer > 0.0:
+		drop_through_timer -= delta
+		if drop_through_timer <= 0.0:
+			set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, true)
+
 	# 土狼时间：在地面时持续重置，离地后倒数
 	if is_on_floor():
 		coyote_timer = coyote_duration
@@ -150,26 +163,22 @@ func _update_camera(delta: float) -> void:
 	# -----------------------------
 	# 1. 水平前视（带死区、空中保持、落地延迟回中）
 	# -----------------------------
-	# 目标：
-	# 1) 跑动时正常保留前视
-	# 2) 跳起和空中阶段不要突然回中
-	# 3) 落地后也不要立刻回中，避免“镜头从前方回拉”的感觉
+	# 跑动时正常保留前视
+	# 跳起和空中阶段不突然回中
+	# 落地后也不立刻回中，避免"镜头从前方回拉"的感觉
 	if abs(velocity.x) > horizontal_deadzone_speed:
-		# 速度足够大，正常记录当前朝向
 		_facing_x_target = sign(velocity.x)
 		_grounded_return_timer = 0.0
 	elif not is_on_floor():
-		# 空中时：保留最后一次有效朝向，不回中
+		# 空中时保留最后一次有效朝向，不回中
 		_grounded_return_timer = 0.0
 	else:
-		# 在地面且速度不够高时，不是立刻回中，而是先计时
+		# 地面且速度不够时，先计时再回中
 		_grounded_return_timer += delta
-
-		# 只有真的在地面上停了一小会儿，才开始回中
 		if _grounded_return_timer >= grounded_return_delay:
 			_facing_x_target = 0.0
 
-	# 转向和回中的速度不同，能减少“镜头被拽回来”的感觉
+	# 转向和回中速度不同，减少"镜头被拽回来"的感觉
 	var facing_speed := horizontal_turn_speed if _facing_x_target != 0.0 else horizontal_return_speed
 	_look_ahead_sign = _smooth_value(_look_ahead_sign, _facing_x_target, facing_speed, delta)
 
@@ -212,25 +221,25 @@ func _update_camera(delta: float) -> void:
 			manual_vertical_offset = manual_look_down
 
 	# -----------------------------
-	# 3.5 明显下落时，额外给下方视野
+	# 3.5. 明显下落时额外给下方视野（Fall Look Assist）
 	# -----------------------------
-	# 平时不影响地面和普通小跳；
-	# 只有明显下落时，镜头才额外往下看，让玩家更早看到脚下。
+	# 平时不影响地面和普通小跳
+	# 只有明显下落时，镜头才额外往下看，让玩家更早看到脚下
+	# 根据下落速度比例平滑叠加，不会突然往下冲
 	var target_fall_look := 0.0
 	if not is_on_floor() and velocity.y > fall_look_speed_threshold:
 		var fall_ratio := inverse_lerp(fall_look_speed_threshold, max_fall_speed, velocity.y)
 		target_fall_look = lerpf(0.0, fall_look_max_offset, fall_ratio)
 
-	# 额外下看也做平滑，避免突然一下子往下冲
 	_fall_look_offset = _smooth_value(_fall_look_offset, target_fall_look, fall_look_blend_speed, delta)
 
 	var target_vertical_offset := auto_vertical_offset + manual_vertical_offset + _fall_look_offset
 
 	# -----------------------------
-	# 4. 水平 / 垂直分轴平滑（重点）
+	# 4. 水平 / 垂直分轴平滑
 	# -----------------------------
-	# 用分轴平滑代替“整个 camera_target 一起 lerp”，
-	# 可以明显减少之前那种“又慢又黏、还有点剧烈”的感觉。
+	# 分轴平滑让水平和垂直可以独立调速
+	# 减少之前"又慢又黏"的感觉
 	_camera_offset_x = _smooth_value(_camera_offset_x, target_horizontal_offset, camera_follow_speed_x, delta)
 	_camera_offset_y = _smooth_value(_camera_offset_y, target_vertical_offset, camera_follow_speed_y, delta)
 
@@ -238,11 +247,10 @@ func _update_camera(delta: float) -> void:
 
 func _smooth_value(current: float, target: float, speed: float, delta: float) -> float:
 	# 帧率无关的指数平滑核心函数
-	# 比普通 lerp(current, target, speed * delta) 更稳定，
-	# 不容易因为帧率波动导致手感变化。
+	# 比普通 lerp(current, target, speed * delta) 更稳定
+	# 不会因帧率波动导致手感变化
 	if speed <= 0.0:
 		return target
-
 	var weight := 1.0 - exp(-speed * delta)
 	return lerpf(current, target, weight)
 
@@ -307,6 +315,20 @@ func update_facing() -> void:
 func has_horizontal_input() -> bool:
 	# 封装水平输入判断，状态脚本不需要直接接触 INPUT_DEADZONE 常量
 	return abs(direction.x) >= INPUT_DEADZONE
+
+# ==========================================
+# 🪜 单向平台穿透
+# ==========================================
+func request_drop_through() -> void:
+	# 已经在穿透过程中时，不重复触发，防止 timer 被每帧刷新
+	if drop_through_timer > 0.0:
+		return
+	# 临时关闭对单向平台层的碰撞 mask
+	# 不依赖 collider 类型，对 TileMap 和独立平台都有效
+	set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, false)
+	drop_through_timer = drop_through_duration
+	# 给一点向下初速，帮助角色尽快脱离平台表面
+	velocity.y = max(velocity.y, 30.0)
 
 func apply_bounce(force: float) -> void:
 	velocity.y = -force

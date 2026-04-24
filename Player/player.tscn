@@ -362,6 +362,7 @@ animations = [{
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_5htga"]
 
 [node name="Player" type="CharacterBody2D" unique_id=330197014 node_paths=PackedStringArray("initial_state")]
+z_index = 1
 collision_mask = 15
 script = ExtResource("1_l8h54")
 initial_state = NodePath("states/Idle")

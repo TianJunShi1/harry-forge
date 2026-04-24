@@ -42,11 +42,11 @@ func physics_process(_delta: float) -> Playerstate:
 	if not player.is_on_floor():
 		return fall_state
 		
-	# 【新增功能】：进入下蹲状态后，如果脚下检测到是单向平台，直接下落
-	# 注意：position.y += 1.0 是原型阶段的临时方案，用于推出碰撞体积触发穿透
-	# 后续可改为临时关闭单向平台碰撞层，更稳定
+	# 脚下检测到单向平台时，请求穿透
+	# 改用 player.request_drop_through()，临时关闭碰撞层
+	# 不依赖平台厚度和 collider 类型，对 TileMap 单向平台也稳定
 	if one_way_platform_ray_cast.is_colliding():
-		player.position.y += 1.0 
+		player.request_drop_through()
 		return fall_state
 		
 	# 如果松开 S 键（或者方向不再向下），返回待机状态
