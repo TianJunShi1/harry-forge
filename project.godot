@@ -29,6 +29,7 @@ folder_colors={
 "res://Interactable/": "orange",
 "res://Level/": "teal",
 "res://Player/": "red",
+"res://general/": "yellow",
 "res://icon/": "gray"
 }
 
