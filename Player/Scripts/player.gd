@@ -177,17 +177,22 @@ func _update_camera(delta: float) -> void:
 	# -----------------------------
 	# 1. 水平前视（带死区、空中保持、落地延迟回中）
 	# -----------------------------
-	if abs(velocity.x) > horizontal_deadzone_speed:
-		_facing_x_target = sign(velocity.x)
-		_grounded_return_timer = 0.0
-	elif not is_on_floor():
-		# 空中时保留最后一次有效朝向，不回中
-		_grounded_return_timer = 0.0
+	var has_horizontal_intent := abs(direction.x) >= INPUT_DEADZONE
+
+	if is_on_floor():
+		# 地面时优先看“输入意图”，而不是实际速度
+		# 这样顶着地图边缘/墙体时，镜头不会因为 velocity.x 被撞成 0 就回中
+		if has_horizontal_intent:
+			_facing_x_target = sign(direction.x)
+			_grounded_return_timer = 0.0
+		else:
+			# 真正松开输入后，才开始延迟回中
+			_grounded_return_timer += delta
+			if _grounded_return_timer >= grounded_return_delay:
+				_facing_x_target = 0.0
 	else:
-		# 地面且速度不够时，先计时再回中
-		_grounded_return_timer += delta
-		if _grounded_return_timer >= grounded_return_delay:
-			_facing_x_target = 0.0
+		# 空中保持最后一次有效朝向
+		_grounded_return_timer = 0.0
 
 	var facing_speed := horizontal_turn_speed if _facing_x_target != 0.0 else horizontal_return_speed
 	_look_ahead_sign = _smooth_value(_look_ahead_sign, _facing_x_target, facing_speed, delta)
