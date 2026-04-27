@@ -40,8 +40,18 @@ func get_bounds_rect() -> Rect2:
 	# 自定义边界：用于隐藏区域、小夹层、特殊房间
 	if use_custom_bounds:
 		var center := bounds_center.global_position if bounds_center else global_position
-		var top_left := center - bounds_size * 0.5
-		return Rect2(top_left, bounds_size)
+
+		# 自定义边界如果比视口还小，Player 侧会进入“小区域居中”逻辑，
+		# 体感上会更像被吸到中心，而不是顺滑滑进去。
+		# 这里把边界至少扩到当前视口大小，避免隐藏区域一进入就被强制居中。
+		var viewport_size := get_viewport_rect().size
+		var final_size := Vector2(
+			max(bounds_size.x, viewport_size.x),
+			max(bounds_size.y, viewport_size.y)
+		)
+
+		var top_left := center - final_size * 0.5
+		return Rect2(top_left, final_size)
 
 	# 默认边界：直接使用 CollisionShape2D 的矩形
 	var shape := collision_shape.shape as RectangleShape2D
