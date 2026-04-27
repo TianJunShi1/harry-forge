@@ -177,7 +177,7 @@ func _update_camera(delta: float) -> void:
 	# -----------------------------
 	# 1. 水平前视（带死区、空中保持、落地延迟回中）
 	# -----------------------------
-	var has_horizontal_intent := abs(direction.x) >= INPUT_DEADZONE
+	var has_horizontal_intent: bool = absf(direction.x) >= INPUT_DEADZONE
 
 	if is_on_floor():
 		# 地面时优先看“输入意图”，而不是实际速度
