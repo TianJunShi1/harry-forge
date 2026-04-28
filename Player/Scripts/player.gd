@@ -25,85 +25,81 @@ var coyote_timer : float = 0.0      # 土狼时间倒计时，大于 0 表示仍
 var coyote_duration : float = 0.15  # 土狼时间窗口长度（秒）
 
 # 单向平台穿透
-# ONE_WAY_PLATFORM_LAYER 对应 Godot 物理层第 3 层（TileSet 里显示的"物理层 1"）
-# 如果你的单向平台层改变了，只需修改这个常量
 const ONE_WAY_PLATFORM_LAYER : int = 3
-@export var drop_through_duration : float = 0.18  # 关闭碰撞的持续时间（秒）
+@export var drop_through_duration : float = 0.18
 var drop_through_timer : float = 0.0
 #endregion
 
 #region /// 🎨 Animation Variables (动画节点，统一由 Player 持有)
-@onready var anim : AnimatedSprite2D = $AnimatedSprite2D  # 各状态通过 player.anim 访问
+@onready var anim : AnimatedSprite2D = $AnimatedSprite2D
 #endregion
 
 #region /// 🎬 Camera Variables (摄影机系统)
-# 注意：
-# 这份脚本已经完整接管镜头平滑，
 # 请确保 Camera2D 自带的 position_smoothing_enabled 是关闭的。
 
 @export_group("Camera / Horizontal")
-@export var look_ahead_distance_x: float = 20.0       # 水平前视距离
-@export var horizontal_deadzone_speed: float = 110.0  # 速度超过此值才触发方向记忆
-@export var horizontal_turn_speed: float = 3.0        # 转向时前视切换速度（越大越快）
-@export var horizontal_return_speed: float = 0.9      # 停下后回中速度（越小越慢）
-@export var camera_follow_speed_x: float = 4.0        # 水平摄影机整体跟随速度
-@export var bounds_softness_x: float = 0.0            # 靠近左右边界时的软着陆范围（普通区域建议 0，避免回弹）
-@export var edge_lookahead_fade_distance: float = 140.0 # 靠近左右边界时，水平前视逐渐衰减的距离
+@export var look_ahead_distance_x: float = 20.0
+@export var horizontal_deadzone_speed: float = 110.0
+@export var horizontal_turn_speed: float = 3.0
+@export var horizontal_return_speed: float = 0.9
+@export var camera_follow_speed_x: float = 4.0
+@export var bounds_softness_x: float = 0.0       # 0 = 硬边界无回弹，> 0 = 靠近边界时软减速
+@export var edge_lookahead_fade_distance: float = 350.0
 
 @export_group("Camera / Vertical")
-@export var vertical_deadzone_up: float = 10.0        # 向上软区大小（小跳更不容易触发）
-@export var vertical_deadzone_down: float = 10.0      # 向下软区大小
-@export var grounded_recenter_speed: float = 1.0      # 落地后锚点归位速度（越大越快回中）
-@export var camera_follow_speed_y: float = 3.0        # 垂直摄影机整体跟随速度
-@export var max_vertical_auto_offset: float = 52.0    # 自动垂直偏移的最大值（防止大落差时镜头飞太远）
-@export var bounds_softness_y: float = 0.0            # 靠近上下边界时的软着陆范围（普通区域建议 0，避免回弹）
+@export var vertical_deadzone_up: float = 10.0
+@export var vertical_deadzone_down: float = 10.0
+@export var grounded_recenter_speed: float = 1.0
+@export var camera_follow_speed_y: float = 3.0
+@export var max_vertical_auto_offset: float = 52.0
+@export var bounds_softness_y: float = 0.0       # 0 = 硬边界无回弹，> 0 = 靠近边界时软减速
 
 @export_group("Camera / Manual Look")
-@export var manual_look_up: float = -30.0             # 手动抬头偏移量（负数向上）
-@export var manual_look_down: float = 30.0            # 手动低头偏移量（正数向下）
-@export var vertical_look_delay: float = 0.30         # 按住多久才触发手动抬头/低头（秒）
-@export var manual_look_blend_speed: float = 5.0      # 手动抬头/低头平滑速度
+@export var manual_look_up: float = -30.0
+@export var manual_look_down: float = 30.0
+@export var vertical_look_delay: float = 0.30
+@export var manual_look_blend_speed: float = 5.0
 
 @export_group("Camera / Air & Fall Assist")
-@export var grounded_return_delay: float = 0.12       # 落地后延迟多久才允许水平回中
-@export var fall_look_speed_threshold: float = 220.0  # 明显下落时才额外往下看
-@export var fall_look_max_offset: float = 26.0        # 高速下落时额外往下看的最大距离
-@export var fall_look_blend_speed: float = 4.5        # 下落额外下看的进入/退出速度
+@export var grounded_return_delay: float = 0.12
+@export var fall_look_speed_threshold: float = 220.0
+@export var fall_look_max_offset: float = 26.0
+@export var fall_look_blend_speed: float = 4.5
 
 @export_group("Camera / Room Lock")
-@export var room_lock_blend_speed: float = 2.4        # 隐藏房间固定镜头的混合速度（越小越慢越柔）
+@export var room_lock_blend_speed: float = 2.4
 
 @onready var camera_target: Marker2D = $CameraTarget
-@onready var camera: Camera2D = $CameraTarget/Camera2D  # 用于边界计算时读取 zoom
+@onready var camera: Camera2D = $CameraTarget/Camera2D
 
-var base_camera_position: Vector2       # 记录编辑器里 Marker2D 的初始位置
+var base_camera_position: Vector2
 
 # 水平方向状态
-var _look_ahead_sign: float = 0.0       # 当前水平前视的平滑值（-1 到 1）
-var _facing_x_target: float = 0.0      # 水平前视的目标值
-var _grounded_return_timer: float = 0.0 # 地面停留多久后才允许水平回中
+var _look_ahead_sign: float = 0.0
+var _facing_x_target: float = 0.0
+var _grounded_return_timer: float = 0.0
 
 # 垂直方向状态
-var _vertical_look_timer: float = 0.0   # 手动上下看的蓄力计时器
-var _camera_anchor_world_y: float = 0.0 # 垂直软区锚点（世界坐标）
-var _fall_look_offset: float = 0.0      # 当前"额外下看"偏移
-var _manual_look_offset: float = 0.0    # 当前"手动上下看"平滑偏移
+var _vertical_look_timer: float = 0.0
+var _camera_anchor_world_y: float = 0.0
+var _fall_look_offset: float = 0.0
+var _manual_look_offset: float = 0.0
 
-# 最终叠加到 CameraTarget 本地位置上的平滑偏移
+# 平滑偏移
 var _camera_offset_x: float = 0.0
 var _camera_offset_y: float = 0.0
 
-# 隐藏房间固定镜头状态
-var _room_lock_weight: float = 0.0                 # 0 = 正常跟随，1 = 固定到房间中心
-var _active_bounds_lock_to_center: bool = false    # 当前生效边界是否要求固定房间镜头
-var _active_bounds_center: Vector2 = Vector2.ZERO  # 当前生效边界的世界中心
+# 隐藏房间固定镜头
+var _room_lock_weight: float = 0.0
+var _active_bounds_lock_to_center: bool = false
+var _active_bounds_center: Vector2 = Vector2.ZERO
 
-# 摄像机边界系统（栈结构，按 source_id 管理，支持嵌套区域和退出恢复）
-# 每个元素是 {source_id: int, priority: int, rect: Rect2, duration: float, order: int, lock_to_center: bool}
+# 摄像机边界系统
 var _camera_bounds_stack: Array = []
 var _camera_bounds_rect: Rect2 = Rect2()
 var _camera_bounds_display_rect: Rect2 = Rect2()
 var _has_camera_bounds: bool = false
+var _bounds_initialized: bool = false  # 【修复】独立标记，替代不可靠的 == Rect2() 判断
 var _camera_bounds_tween: Tween
 var _camera_bounds_order_counter: int = 0
 #endregion
@@ -112,13 +108,9 @@ var _camera_bounds_order_counter: int = 0
 @onready var state_label: Label = $Label
 
 func _ready() -> void:
-	# 记录运行游戏那一刻，你在编辑器里设定的 Marker2D 位置（实现所见即所得）
 	if camera_target:
 		base_camera_position = camera_target.position
-
-	# 垂直软区锚点使用世界坐标初始化
 	_camera_anchor_world_y = global_position.y
-
 	initialize_states()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -126,31 +118,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		change_state(current_state.handle_input(event))
 
 func _physics_process(delta: float) -> void:
-	# update_direction 在物理帧开头，保证本帧输入和物理逻辑同步
 	update_direction()
 
-	# 不对称重力：下落比上升更快，增强平台游戏手感
 	if velocity.y > 0.0:
 		velocity.y += gravity * fall_gravity_multiplier * delta
 	else:
 		velocity.y += gravity * delta
-
-	# 限制终端速度
 	velocity.y = min(velocity.y, max_fall_speed)
 
-	# 执行状态机的物理更新
 	if current_state:
 		change_state(current_state.physics_process(delta))
 
 	move_and_slide()
 
-	# 单向平台穿透计时：时间到了恢复碰撞
 	if drop_through_timer > 0.0:
 		drop_through_timer -= delta
 		if drop_through_timer <= 0.0:
 			set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, true)
 
-	# 土狼时间：在地面时持续重置，离地后倒数
 	if is_on_floor():
 		coyote_timer = coyote_duration
 	else:
@@ -167,10 +152,8 @@ func _process(delta: float) -> void:
 # 🎬 摄影机核心逻辑
 # ==========================================
 func _update_vertical_look_timer(delta: float) -> void:
-	# 只有在地面、几乎静止时，才允许蓄力手动抬头/低头
-	# 这样跑动和跳跃过程中不会误触发上下看
-	if is_on_floor() and abs(velocity.x) < 10.0 and abs(velocity.y) < 5.0:
-		if abs(direction.y) > 0.5:
+	if is_on_floor() and absf(velocity.x) < 10.0 and absf(velocity.y) < 5.0:
+		if absf(direction.y) > 0.5:
 			_vertical_look_timer += delta
 		else:
 			_vertical_look_timer = 0.0
@@ -183,29 +166,23 @@ func _update_camera(delta: float) -> void:
 
 	var player_y := global_position.y
 
-	# 隐藏房间固定镜头不是瞬间切换，而是平滑提高权重
+	# 隐藏房间权重平滑
 	var room_lock_target: float = 1.0 if _active_bounds_lock_to_center else 0.0
 	_room_lock_weight = _smooth_value(_room_lock_weight, room_lock_target, room_lock_blend_speed, delta)
 	var player_camera_weight: float = 1.0 - _room_lock_weight
 
 	# -----------------------------
-	# 1. 水平前视（带死区、空中保持、落地延迟回中）
+	# 1. 水平前视
 	# -----------------------------
-	var has_horizontal_intent: bool = absf(direction.x) >= INPUT_DEADZONE
-
 	if is_on_floor():
-		# 地面时优先看“输入意图”，而不是实际速度
-		# 这样顶着地图边缘/墙体时，镜头不会因为 velocity.x 被撞成 0 就回中
-		if has_horizontal_intent:
+		if absf(direction.x) >= INPUT_DEADZONE:
 			_facing_x_target = sign(direction.x)
 			_grounded_return_timer = 0.0
 		else:
-			# 真正松开输入后，才开始延迟回中
 			_grounded_return_timer += delta
 			if _grounded_return_timer >= grounded_return_delay:
 				_facing_x_target = 0.0
 	else:
-		# 空中保持最后一次有效朝向
 		_grounded_return_timer = 0.0
 
 	var facing_speed := horizontal_turn_speed if _facing_x_target != 0.0 else horizontal_return_speed
@@ -213,15 +190,10 @@ func _update_camera(delta: float) -> void:
 	var target_horizontal_offset := _look_ahead_sign * look_ahead_distance_x
 
 	# -----------------------------
-	# 2. 垂直软区（Soft Zone）
+	# 2. 垂直软区
 	# -----------------------------
 	if is_on_floor():
-		_camera_anchor_world_y = _smooth_value(
-			_camera_anchor_world_y,
-			player_y,
-			grounded_recenter_speed,
-			delta
-		)
+		_camera_anchor_world_y = _smooth_value(_camera_anchor_world_y, player_y, grounded_recenter_speed, delta)
 	else:
 		if player_y < _camera_anchor_world_y - vertical_deadzone_up:
 			_camera_anchor_world_y = player_y + vertical_deadzone_up
@@ -235,9 +207,8 @@ func _update_camera(delta: float) -> void:
 	)
 
 	# -----------------------------
-	# 3. 手动抬头/低头（先算目标值，不先混进自动跟随）
+	# 3. 手动抬头/低头
 	# -----------------------------
-	# 放到边界限制之后再附加，确保靠近边界时不会把另一个方向也锁死
 	var manual_vertical_target := 0.0
 	if is_on_floor() and _vertical_look_timer >= vertical_look_delay:
 		if direction.y < -0.5:
@@ -246,25 +217,23 @@ func _update_camera(delta: float) -> void:
 			manual_vertical_target = manual_look_down
 
 	# -----------------------------
-	# 3.5. 明显下落时额外给下方视野（Fall Look Assist）
+	# 3.5. 下落视野辅助
 	# -----------------------------
 	var target_fall_look := 0.0
 	if not is_on_floor() and velocity.y > fall_look_speed_threshold:
 		var fall_ratio := inverse_lerp(fall_look_speed_threshold, max_fall_speed, velocity.y)
 		target_fall_look = lerpf(0.0, fall_look_max_offset, fall_ratio)
-
 	_fall_look_offset = _smooth_value(_fall_look_offset, target_fall_look, fall_look_blend_speed, delta)
 
-	# 只让"自动跟随 + 下落辅助"参与主相机平滑，手动 look 放到边界限制之后再加
 	var target_vertical_offset := auto_vertical_offset + _fall_look_offset
 
-	# 隐藏房间固定镜头模式下，玩家驱动镜头逐渐淡出，而不是一帧关闭
+	# 隐藏房间模式下玩家驱动镜头逐渐淡出
 	target_horizontal_offset *= player_camera_weight
 	target_vertical_offset *= player_camera_weight
 	manual_vertical_target *= player_camera_weight
 
 	# -----------------------------
-	# 4. 先准备边界范围
+	# 4. 边界范围（本地坐标）
 	# -----------------------------
 	var local_min := Vector2(-INF, -INF)
 	var local_max := Vector2(INF, INF)
@@ -274,42 +243,48 @@ func _update_camera(delta: float) -> void:
 		local_min = _camera_bounds_display_rect.position - global_position + half_screen
 		local_max = _camera_bounds_display_rect.end - global_position - half_screen
 
-	# 靠近边界时，水平前视逐渐减弱，避免“前视继续推 + 边界硬拦”的弹力感
+	# 靠近边界时水平前视衰减，避免前视和边界互相拉扯
 	if _has_camera_bounds:
 		target_horizontal_offset *= _get_edge_lookahead_weight(target_horizontal_offset, local_min, local_max)
 
 	# -----------------------------
-	# 5. 先算“受边界限制后的目标位置”
+	# 5. 受边界限制后的目标位置
 	# -----------------------------
-	var desired_position := base_camera_position + Vector2(target_horizontal_offset, target_vertical_offset)
+	var desired_x := base_camera_position.x + target_horizontal_offset
+	var desired_y := base_camera_position.y + target_vertical_offset
 
 	if _has_camera_bounds:
-		desired_position.x = _soft_limit(desired_position.x, local_min.x, local_max.x, bounds_softness_x)
-		desired_position.y = _soft_limit(desired_position.y, local_min.y, local_max.y, bounds_softness_y)
+		desired_x = _soft_limit(desired_x, local_min.x, local_max.x, bounds_softness_x)
+		desired_y = _soft_limit(desired_y, local_min.y, local_max.y, bounds_softness_y)
 
 	# -----------------------------
-	# 6. 再让相机平滑追这个“已经被限制过的目标”
+	# 6. 平滑追目标，并在到达边界后硬夹最终位置
 	# -----------------------------
-	_camera_offset_x = _smooth_value(
-		_camera_offset_x,
-		desired_position.x - base_camera_position.x,
-		camera_follow_speed_x,
-		delta
-	)
-
-	_camera_offset_y = _smooth_value(
-		_camera_offset_y,
-		desired_position.y - base_camera_position.y,
-		camera_follow_speed_y,
-		delta
-	)
+	_camera_offset_x = _smooth_value(_camera_offset_x, desired_x - base_camera_position.x, camera_follow_speed_x, delta)
+	_camera_offset_y = _smooth_value(_camera_offset_y, desired_y - base_camera_position.y, camera_follow_speed_y, delta)
 
 	var final_position := base_camera_position + Vector2(_camera_offset_x, _camera_offset_y)
 
+	# 【修复回弹】平滑追踪后，夹住最终 CameraTarget 位置，而不是直接夹 offset
+	# local_min/local_max 是 final_position 的允许范围，offset 只是相对 base_camera_position 的偏移
+	# 夹住 final_position 后，再反推 offset，能防止内部状态继续带着越界值
+	if _has_camera_bounds:
+		if local_min.x <= local_max.x:
+			final_position.x = clampf(final_position.x, local_min.x, local_max.x)
+		else:
+			final_position.x = (local_min.x + local_max.x) * 0.5
+
+		if local_min.y <= local_max.y:
+			final_position.y = clampf(final_position.y, local_min.y, local_max.y)
+		else:
+			final_position.y = (local_min.y + local_max.y) * 0.5
+
+		_camera_offset_x = final_position.x - base_camera_position.x
+		_camera_offset_y = final_position.y - base_camera_position.y
+
 	# -----------------------------
-	# 7. 手动抬头/低头在剩余空间里附加
+	# 7. 手动抬头/低头在剩余空间附加
 	# -----------------------------
-	# 靠近上边界时抬头受限，但只要下方还有空间，低头仍然能生效，反之亦然
 	_manual_look_offset = _smooth_value(_manual_look_offset, manual_vertical_target, manual_look_blend_speed, delta)
 
 	if _manual_look_offset != 0.0:
@@ -321,18 +296,23 @@ func _update_camera(delta: float) -> void:
 		final_position.y += final_manual
 
 	# -----------------------------
-	# 8. 隐藏房间固定镜头平滑混合
+	# 8. 隐藏房间固定镜头混合
 	# -----------------------------
-	# 这里不是直接锁死，而是把正常玩家镜头慢慢混合到房间中心
-	# camera.position 也要减掉，保证真正的 Camera2D 视觉中心对齐房间中心
 	if _room_lock_weight > 0.001 and _has_camera_bounds:
-		var room_center_position := _active_bounds_center - global_position - camera.position
-		final_position = final_position.lerp(room_center_position, _room_lock_weight)
+		# 【修改】使用当前正在 Tween 的 display_rect 中心，而不是最终目标 rect 中心
+		# 这样房间锁定目标会跟随边界过渡一起移动，不会先慢后突然加速冲向最终中心
+		var display_center := _camera_bounds_display_rect.position + _camera_bounds_display_rect.size * 0.5
+		var room_center_local := display_center - global_position - camera.position
+		final_position = final_position.lerp(room_center_local, _room_lock_weight)
+
+		# 【修复退出隐藏房间怪异】同步内部 offset 状态到当前真实画面位置
+		# 避免退出 room lock 时，从进入房间前的旧 offset 接回来
+		_camera_offset_x = final_position.x - base_camera_position.x
+		_camera_offset_y = final_position.y - base_camera_position.y
 
 	camera_target.position = final_position
 
 func _smooth_value(current: float, target: float, speed: float, delta: float) -> float:
-	# 帧率无关的指数平滑核心函数
 	if speed <= 0.0:
 		return target
 	var weight := 1.0 - exp(-speed * delta)
@@ -343,49 +323,34 @@ func _smoothstep01(value: float) -> float:
 	return t * t * (3.0 - 2.0 * t)
 
 func _get_edge_lookahead_weight(offset_x: float, local_min: Vector2, local_max: Vector2) -> float:
-	# 没有水平前视、没有有效边界，或者不需要衰减时，保持原效果
 	if edge_lookahead_fade_distance <= 0.0 or absf(offset_x) < 0.01:
 		return 1.0
-
-	# 房间比屏幕还小时，不再额外给水平前视，避免小空间里左右拉扯
 	if local_min.x > local_max.x:
 		return 0.0
-
 	var distance_to_edge: float = 0.0
 	if offset_x > 0.0:
 		distance_to_edge = local_max.x - base_camera_position.x
 	else:
 		distance_to_edge = base_camera_position.x - local_min.x
-
 	return _smoothstep01(distance_to_edge / edge_lookahead_fade_distance)
 
 func _soft_limit(value: float, min_val: float, max_val: float, softness: float) -> float:
-	# 区域比屏幕小，直接居中
 	if min_val > max_val:
 		return (min_val + max_val) * 0.5
-
-	# 不需要软边界时，退化成普通 clamp
 	if softness <= 0.0:
 		return clampf(value, min_val, max_val)
-
-	# 超出边界，直接夹住
 	if value <= min_val:
 		return min_val
 	if value >= max_val:
 		return max_val
-
-	# 靠近左/上边界时，渐进减速
 	if value < min_val + softness:
 		var t := clampf((value - min_val) / softness, 0.0, 1.0)
-		t = t * t * (3.0 - 2.0 * t) # smoothstep
+		t = t * t * (3.0 - 2.0 * t)
 		return lerpf(min_val, value, t)
-
-	# 靠近右/下边界时，渐进减速
 	if value > max_val - softness:
 		var t := clampf((max_val - value) / softness, 0.0, 1.0)
-		t = t * t * (3.0 - 2.0 * t) # smoothstep
+		t = t * t * (3.0 - 2.0 * t)
 		return lerpf(max_val, value, t)
-
 	return value
 
 # ==========================================
@@ -428,9 +393,9 @@ func update_direction() -> void:
 	var x_axis := Input.get_axis("left", "right")
 	var y_axis := Input.get_axis("up", "down")
 
-	if abs(x_axis) < INPUT_DEADZONE:
+	if absf(x_axis) < INPUT_DEADZONE:
 		x_axis = 0.0
-	if abs(y_axis) < INPUT_DEADZONE:
+	if absf(y_axis) < INPUT_DEADZONE:
 		y_axis = 0.0
 
 	direction = Vector2(x_axis, y_axis)
@@ -445,21 +410,17 @@ func update_facing() -> void:
 		anim.flip_h = false
 
 func has_horizontal_input() -> bool:
-	return abs(direction.x) >= INPUT_DEADZONE
+	return absf(direction.x) >= INPUT_DEADZONE
 
 # ==========================================
 # 🎥 摄影机边界系统
 # ==========================================
 func push_camera_bounds(source_id: int, rect: Rect2, priority: int = 0, duration: float = 0.40, lock_to_center: bool = false) -> void:
-	# 先移除同一个区域的旧条目（防止重复压栈）
 	for i in range(_camera_bounds_stack.size() - 1, -1, -1):
 		if _camera_bounds_stack[i]["source_id"] == source_id:
 			_camera_bounds_stack.remove_at(i)
 
-	# 记录进入顺序：同优先级时，最后进入的区域生效
 	_camera_bounds_order_counter += 1
-
-	# 压入新条目并排序
 	_camera_bounds_stack.append({
 		"source_id": source_id,
 		"priority": priority,
@@ -478,7 +439,6 @@ func push_camera_bounds(source_id: int, rect: Rect2, priority: int = 0, duration
 	_update_active_bounds()
 
 func pop_camera_bounds(source_id: int) -> void:
-	# 按区域唯一 id 移除，不会误删同优先级的其他区域
 	for i in range(_camera_bounds_stack.size() - 1, -1, -1):
 		if _camera_bounds_stack[i]["source_id"] == source_id:
 			_camera_bounds_stack.remove_at(i)
@@ -486,7 +446,6 @@ func pop_camera_bounds(source_id: int) -> void:
 	_update_active_bounds()
 
 func _update_active_bounds() -> void:
-	# 取栈顶（优先级最高；同优先级时最后进入）的边界生效
 	if _camera_bounds_stack.is_empty():
 		_has_camera_bounds = false
 		_active_bounds_lock_to_center = false
@@ -502,22 +461,26 @@ func _update_active_bounds() -> void:
 	_active_bounds_center = new_rect.position + new_rect.size * 0.5
 	_active_bounds_lock_to_center = active_bounds["lock_to_center"]
 
-	# 第一次直接赋值，避免开场从零矩形 Tween 过来
-	if _camera_bounds_display_rect == Rect2():
+	# 【修复】用独立布尔标记判断第一次，避免 == Rect2() 浮点比较不可靠
+	# 第一次直接赋值，不走 Tween，防止开场从 Rect2() 过渡到实际边界
+	if not _bounds_initialized:
+		_bounds_initialized = true
 		_camera_bounds_display_rect = new_rect
 		return
 
-	# 有旧 tween 就杀掉
-	if _camera_bounds_tween:
+	# 从当前 display_rect 的实时值开始 Tween（可能是上次过渡的中间值）
+	var from_position := _camera_bounds_display_rect.position
+	var from_size := _camera_bounds_display_rect.size
+
+	if _camera_bounds_tween and _camera_bounds_tween.is_valid():
 		_camera_bounds_tween.kill()
 
 	_camera_bounds_tween = create_tween()
 	_camera_bounds_tween.set_parallel(true)
 	_camera_bounds_tween.set_trans(Tween.TRANS_SINE)
 	_camera_bounds_tween.set_ease(Tween.EASE_IN_OUT)
-
-	_camera_bounds_tween.tween_method(_set_camera_bounds_rect_position, _camera_bounds_display_rect.position, new_rect.position, duration)
-	_camera_bounds_tween.tween_method(_set_camera_bounds_rect_size, _camera_bounds_display_rect.size, new_rect.size, duration)
+	_camera_bounds_tween.tween_method(_set_camera_bounds_rect_position, from_position, new_rect.position, duration)
+	_camera_bounds_tween.tween_method(_set_camera_bounds_rect_size, from_size, new_rect.size, duration)
 
 func _set_camera_bounds_rect_position(value: Vector2) -> void:
 	_camera_bounds_display_rect.position = value
@@ -529,7 +492,6 @@ func _set_camera_bounds_rect_size(value: Vector2) -> void:
 # 🪜 单向平台穿透
 # ==========================================
 func request_drop_through() -> void:
-	# 已经在穿透过程中时，不重复触发，防止 timer 被每帧刷新
 	if drop_through_timer > 0.0:
 		return
 	set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, false)
