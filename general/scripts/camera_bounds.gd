@@ -11,6 +11,7 @@ extends Area2D
 
 @export var use_custom_bounds: bool = false    # 关闭时直接用 CollisionShape2D 当边界；开启时用下面这套
 @export var bounds_size: Vector2 = Vector2(320, 180)  # 自定义边界大小（只在 use_custom_bounds=true 时生效）
+@export var lock_camera_to_room_center: bool = true   # 自定义隐藏区域默认固定房间镜头，普通区域不受影响
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var bounds_center: Marker2D = get_node_or_null("BoundsCenter")
@@ -24,17 +25,22 @@ func _ready() -> void:
 func _apply_if_player_already_inside() -> void:
 	for body in get_overlapping_bodies():
 		if body is Player:
-			body.push_camera_bounds(get_instance_id(), get_bounds_rect(), bounds_priority, transition_duration)
+			body.push_camera_bounds(get_instance_id(), get_bounds_rect(), bounds_priority, transition_duration, _should_lock_camera_to_center())
 
 func _on_body_entered(body: Node) -> void:
 	if not body is Player:
 		return
-	body.push_camera_bounds(get_instance_id(), get_bounds_rect(), bounds_priority, transition_duration)
+	body.push_camera_bounds(get_instance_id(), get_bounds_rect(), bounds_priority, transition_duration, _should_lock_camera_to_center())
 
 func _on_body_exited(body: Node) -> void:
 	if not body is Player:
 		return
 	body.pop_camera_bounds(get_instance_id())
+
+func _should_lock_camera_to_center() -> bool:
+	# 普通区域 use_custom_bounds=false 时不锁定，避免破坏已有角色镜头
+	# 隐藏区域 use_custom_bounds=true 时默认启用固定房间镜头
+	return use_custom_bounds and lock_camera_to_room_center
 
 func get_bounds_rect() -> Rect2:
 	# 自定义边界：用于隐藏区域、小夹层、特殊房间
