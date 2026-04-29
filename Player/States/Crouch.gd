@@ -7,7 +7,7 @@ class_name PlayerstateCrouch extends Playerstate
 @onready var jump_state: PlayerstateJump = %Jump   # 【修改】类型细化为 PlayerstateJump
 @onready var fall_state: PlayerstateFall = %Fall   # 【修改】类型细化为 PlayerstateFall
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
-@onready var one_way_platform_ray_cast: RayCast2D = $"../../OneWayPlatformRayCast"
+@onready var one_way_platform_ray_cast: RayCast2D = %OneWayPlatformRayCast
 
 # 下蹲时的摩擦力
 var friction: float = 1000.0 

@@ -1,0 +1,134 @@
+# Harry Forge — 代码库说明
+
+Godot 4.6 2D 平台跳跃游戏，像素风格，银河恶魔城玩法。
+分辨率：480×270（窗口 1440×810，canvas_items 拉伸）。
+
+## 目录结构
+
+```
+Player/          玩家角色：状态机 + 物理
+  Scripts/       player.gd（主脚本）
+  States/        Idle / Run / Jump / Fall / Crouch
+  Sprites/       帧动画素材
+Interactable/    可交互物体
+  BouncePad/     弹跳板
+Level/           地图场景
+  00_chapter1/   第 0 章第 1 幕
+  tileset/       图块集
+general/         通用工具
+  game_camera.tscn         关卡摄像机场景（放在关卡根节点）
+  camera_bounds.tscn       摄像机区域预制体（CameraZone）
+  scripts/
+    game_camera.gd         GameCamera2D 脚本
+    camera_bounds.gd       CameraZone 脚本
+icon/            编辑器图标
+playground.tscn  开发测试场景（主场景）
+```
+
+## 玩家状态机
+
+`Player` 持有所有共享参数（速度、重力、土狼时间等），状态只负责自己的逻辑。
+
+状态切换方式：`physics_process` / `process` / `handle_input` 返回目标 `Playerstate` 即切换，返回 `null` 保持当前状态。
+
+| 文件 | 状态 |
+|------|------|
+| Idle.gd | 待机 |
+| Run.gd | 跑动 |
+| Jump.gd | 跳跃 |
+| Fall.gd | 下落（土狼时间 + 跳跃缓冲） |
+| Crouch.gd | 下蹲（单向平台穿透） |
+
+## 摄像机系统
+
+### 核心原则
+
+- **Camera 不属于 Player**。`Camera2D` 放在关卡场景根节点（实例化 `general/game_camera.tscn`）。
+- **Player 不知道 Camera 的存在**，Camera 主动去找 Player（`"player"` 组）。
+- 区域进入/退出由 `CameraZone`（`general/camera_bounds.tscn`）负责通知 Camera。
+
+### 使用步骤
+
+1. 在关卡根节点实例化 `res://general/game_camera.tscn`。
+   - 或直接 Camera 加入 `"game_camera"` 组。
+   - Camera 自动寻找 `"player"` 组第一个节点，无需手动指定。
+2. 摆放 `res://general/camera_bounds.tscn` 划定房间边界。
+
+### GameCamera2D 参数速查
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `follow_smoothing` | 4.0 | 跟随平滑度（越大越快，典型 2~8） |
+| `look_ahead_distance` | 24 px | 朝移动方向偏移的距离 |
+| `look_ahead_turn_speed` | 3.0 | 转向时前视生效速度 |
+| `look_ahead_return_speed` | 1.2 | 停止移动后前视回中速度 |
+| `bounds_softness` | 60 px | 软边界宽度（0=硬边界） |
+| `default_zoom` | (1,1) | 无区域覆盖时的缩放 |
+| `zoom_smoothing` | 3.0 | Zoom 过渡平滑度 |
+| `draw_debug` | false | 调试时显示边界和聚焦点 |
+
+### CameraZone 参数速查
+
+| 参数 | 说明 |
+|------|------|
+| `mode` | FOLLOW（跟随）/ LOCK_TO_CENTER（隐藏房间锁定） |
+| `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
+| `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
+| `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
+| `priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
+| `transition_duration` | 过渡时长（秒） |
+
+### 隐藏房间配置示例
+
+```
+CameraZone (Area2D)
+  mode = LOCK_TO_CENTER
+  bounds_source = CUSTOM_FROM_MARKER
+  custom_bounds_size = Vector2(256, 180)  ← 这个房间的边界大小
+  priority = 10                           ← 高于外层普通区域
+  transition_duration = 0.6
+  CollisionShape2D   ← 做大一些，提前触发
+  BoundsCenter (Marker2D) ← 放在房间中心
+```
+
+### 剧情/POI 聚焦点（代码调用）
+
+```gdscript
+# 让镜头在玩家和目标物体之间混合（weight=1 各占 50%）
+camera.add_focus_point(poi.get_instance_id(), poi.global_position, 1.0, 0.5)
+
+# 聚焦点在移动时更新位置
+camera.update_focus_point(poi.get_instance_id(), poi.global_position)
+
+# 淡出并移除
+camera.remove_focus_point(poi.get_instance_id(), 0.5)
+```
+
+### 不同场景 Zoom
+
+在 `CameraZone` 的 `zoom_override` 设置目标 zoom，Camera 会在过渡时长内丝滑插值。
+注意：Godot 4 的 `Camera2D.zoom > 1` 是**放大**（看到更少），`< 1` 是**缩小**（看到更多）。
+
+### 玩家复活 / 瞬移
+
+```gdscript
+# 瞬移后跳过平滑，防止镜头从旧位置慢慢追过来
+camera.snap_to_target()
+```
+
+## 物理层
+
+| 层 | 名称 |
+|----|------|
+| 1 | Player |
+| 2 | Ground |
+| 3 | OneWayPlatform |
+| 4 | BouncePad |
+
+## 代码约定
+
+- **注释语言**：中文（解释 WHY，不解释 WHAT）
+- **命名**：snake_case 变量/函数，PascalCase 类名
+- **状态切换**：状态函数返回目标状态节点，返回 `null` 保持当前
+- **摄像机分离**：Player 不持有 Camera 引用；Camera 通过组自动发现 Player
+- **安全调用**：跨帧状态切换用 `call_deferred`（如 `apply_bounce`）

@@ -1,83 +1,142 @@
-class_name CameraBounds
-extends Area2D
+class_name CameraZone extends Area2D
 
-# 每个房间/区域放一个这个节点
-# 默认情况下：CollisionShape2D 既是触发区，也是摄像机边界
-# 只有在"隐藏区域 / 特殊区域"时，才启用自定义边界
-# 注意：不支持旋转矩形，请保持节点和 CollisionShape2D 不旋转
+## 摄像机区域。覆盖在地图上某一段区域，玩家走进来时通知 GameCamera2D
+## 切换到这套配置（边界、模式、zoom）。
+##
+## 使用方式：
+##   1. 在地图里实例化 general/camera_bounds.tscn
+##   2. 调整 CollisionShape2D（必须是 RectangleShape2D）覆盖你想限制的区域
+##   3. 在 Inspector 配置 mode / zoom_override / priority 等
+##
+## 三种典型用法：
+##   • 普通房间：mode = FOLLOW，bounds_source = AUTO_FROM_COLLISION
+##   • 隐藏房间：mode = LOCK_TO_CENTER，bounds_source = CUSTOM_FROM_MARKER（提前触发）
+##   • Boss 战 / 大场景：zoom_override = Vector2(0.7, 0.7)（看到更多）
 
-@export var transition_duration: float = 0.40  # 边界过渡时间（秒）
-@export var bounds_priority: int = 0           # 优先级，隐藏区域设更高的值覆盖外层区域
+enum FollowMode {
+	FOLLOW,           # 摄像机跟随玩家（典型房间）
+	LOCK_TO_CENTER,   # 摄像机固定在区域中心（隐藏房间 / 静态镜头）
+}
 
-# 普通房间：use_custom_bounds = false，直接拉 CollisionShape2D 大小即可
-# 隐藏区域：use_custom_bounds = true，CollisionShape2D 做大一点提前触发，
-#           实际摄像机边界由 BoundsCenter（Marker2D 子节点）+ bounds_size 决定
-@export var use_custom_bounds: bool = false
-@export var bounds_size: Vector2 = Vector2(320, 180)  # 只在 use_custom_bounds=true 时生效
+enum BoundsSource {
+	AUTO_FROM_COLLISION,    # 边界 = CollisionShape2D 的矩形
+	CUSTOM_FROM_MARKER,     # 边界 = BoundsCenter Marker2D + custom_bounds_size
+	                        # （触发区可以做大一点，提前进入）
+}
 
-# 隐藏区域默认固定镜头到房间中心，普通区域不受影响
-@export var lock_camera_to_room_center: bool = true
+# ============================================================================
+# 编辑器参数
+# ============================================================================
+
+@export_group("Mode")
+## 摄像机在本区域的行为：跟随玩家 vs 锁定中心
+@export var mode: FollowMode = FollowMode.FOLLOW
+
+## 边界来自哪里
+@export var bounds_source: BoundsSource = BoundsSource.AUTO_FROM_COLLISION
+
+## 仅 CUSTOM_FROM_MARKER 模式生效。需要在本节点下放一个 Marker2D 命名为 "BoundsCenter"
+@export var custom_bounds_size: Vector2 = Vector2(320, 180)
+
+@export_group("Zoom")
+## 进入此区域时切换到的 zoom。Vector2.ZERO 表示沿用 GameCamera2D 的 default_zoom
+## 注意：Godot 4 Camera2D 的 zoom > 1 是放大（看更少），< 1 是缩小（看更多）
+@export var zoom_override: Vector2 = Vector2.ZERO
+
+@export_group("Priority & Transition")
+## 优先级。隐藏房间嵌在大房间里时，给隐藏房间设更大的值，让它覆盖外层
+@export_range(-10, 100, 1) var priority: int = 0
+
+## 进入/退出此区域时的过渡时长（秒）
+@export_range(0.0, 3.0, 0.05) var transition_duration: float = 0.4
+
+@export_group("Camera Reference")
+## GameCamera2D 节点路径。留空则自动按组 "game_camera" 查找
+@export var camera_path: NodePath
+
+# ============================================================================
+# 内部
+# ============================================================================
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var bounds_center: Marker2D = get_node_or_null("BoundsCenter")
+@onready var bounds_center_marker: Marker2D = get_node_or_null("BoundsCenter")
+
+var _camera: GameCamera2D
+
 
 func _ready() -> void:
-	add_to_group("camera_bounds")
+	add_to_group("camera_zones")
+	_resolve_camera()
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	# 处理玩家在本区域内时被实例化的情况（关卡加载场景）
 	call_deferred("_apply_if_player_already_inside")
 
+
+func _resolve_camera() -> void:
+	if camera_path != NodePath(""):
+		_camera = get_node_or_null(camera_path) as GameCamera2D
+	if _camera == null:
+		# 在场景树里找 game_camera 组
+		for n in get_tree().get_nodes_in_group("game_camera"):
+			if n is GameCamera2D:
+				_camera = n
+				break
+	if _camera == null:
+		push_warning("CameraZone：找不到 GameCamera2D。请把 GameCamera 加入 'game_camera' 组，或显式指定 camera_path。")
+
+
 func _apply_if_player_already_inside() -> void:
+	if _camera == null:
+		return
 	for body in get_overlapping_bodies():
 		if body is Player:
-			body.push_camera_bounds(
-				get_instance_id(),
-				get_bounds_rect(),
-				bounds_priority,
-				transition_duration,
-				_should_lock_camera_to_center()
-			)
+			_push_to_camera()
+			return
+
 
 func _on_body_entered(body: Node) -> void:
-	if not body is Player:
+	if not (body is Player):
 		return
-	body.push_camera_bounds(
-		get_instance_id(),
-		get_bounds_rect(),
-		bounds_priority,
-		transition_duration,
-		_should_lock_camera_to_center()
-	)
+	_push_to_camera()
+
 
 func _on_body_exited(body: Node) -> void:
-	if not body is Player:
+	if not (body is Player):
 		return
-	body.pop_camera_bounds(get_instance_id())
+	if _camera:
+		_camera.pop_zone(get_instance_id())
 
-func _should_lock_camera_to_center() -> bool:
-	# 只有自定义边界模式且勾选了锁定，才固定镜头
-	return use_custom_bounds and lock_camera_to_room_center
 
-func get_bounds_rect() -> Rect2:
-	# 隐藏区域模式：用 BoundsCenter + bounds_size 决定真实摄像机边界
-	if use_custom_bounds:
-		var center := bounds_center.global_position if bounds_center else global_position
-		# 边界至少扩到当前视口大小，避免隐藏区域比屏幕小时被强制居中
-		var viewport_size := get_viewport_rect().size
-		var final_size := Vector2(
-			max(bounds_size.x, viewport_size.x),
-			max(bounds_size.y, viewport_size.y)
-		)
-		var top_left := center - final_size * 0.5
-		return Rect2(top_left, final_size)
+func _push_to_camera() -> void:
+	if _camera == null:
+		return
+	_camera.push_zone(get_instance_id(), {
+		"priority": priority,
+		"bounds": _compute_bounds(),
+		"lock_to_center": mode == FollowMode.LOCK_TO_CENTER,
+		"zoom_override": zoom_override,
+		"transition_duration": transition_duration,
+	})
 
-	# 普通房间模式：直接用 CollisionShape2D 的矩形作为边界
-	var shape := collision_shape.shape as RectangleShape2D
-	if shape == null:
-		push_warning("CameraBounds：CollisionShape2D 必须使用 RectangleShape2D")
-		return Rect2()
 
-	var center := collision_shape.global_position
-	var size := shape.size * collision_shape.global_scale.abs()
-	var top_left := center - size * 0.5
-	return Rect2(top_left, size)
+func _compute_bounds() -> Rect2:
+	match bounds_source:
+		BoundsSource.CUSTOM_FROM_MARKER:
+			var center: Vector2 = bounds_center_marker.global_position if bounds_center_marker else global_position
+			# 边界至少不能比视口还小（防止 lock 模式下出现奇怪的居中）
+			var viewport_size := get_viewport_rect().size
+			var final_size := Vector2(
+				max(custom_bounds_size.x, viewport_size.x),
+				max(custom_bounds_size.y, viewport_size.y)
+			)
+			return Rect2(center - final_size * 0.5, final_size)
+		_:
+			# AUTO_FROM_COLLISION
+			var shape := collision_shape.shape as RectangleShape2D
+			if shape == null:
+				push_warning("CameraZone：CollisionShape2D 必须是 RectangleShape2D")
+				return Rect2()
+			var center := collision_shape.global_position
+			var size := shape.size * collision_shape.global_scale.abs()
+			return Rect2(center - size * 0.5, size)

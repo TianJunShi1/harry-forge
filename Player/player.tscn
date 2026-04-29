@@ -407,12 +407,7 @@ theme_override_font_sizes/font_size = 10
 text = "label"
 
 [node name="OneWayPlatformRayCast" type="RayCast2D" parent="." unique_id=1950734130]
+unique_name_in_owner = true
 target_position = Vector2(0, 4)
 collision_mask = 4
 
-[node name="CameraTarget" type="Marker2D" parent="." unique_id=1192185956]
-position = Vector2(0, -100)
-
-[node name="Camera2D" type="Camera2D" parent="CameraTarget" unique_id=31391260]
-position = Vector2(0, 30)
-position_smoothing_speed = 12.0
