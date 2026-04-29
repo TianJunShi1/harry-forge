@@ -199,7 +199,7 @@ func pop_zone(zone_id: int) -> void:
 ## weight = 1.0 时和玩家平分（各 50%）；weight = 2.0 时聚焦点占 2/3。
 ## blend_in 是聚焦点权重淡入用时（秒）。
 func add_focus_point(focus_id: int, world_position: Vector2, weight: float = 1.0, blend_in: float = 0.5) -> void:
-	var fade_speed := 1.0 / max(blend_in, 0.0001)
+	var fade_speed := 1.0 / maxf(blend_in, 0.0001)
 	if _focus_points.has(focus_id):
 		_focus_points[focus_id]["position"] = world_position
 		_focus_points[focus_id]["weight_target"] = weight
@@ -224,7 +224,7 @@ func remove_focus_point(focus_id: int, blend_out: float = 0.5) -> void:
 	if not _focus_points.has(focus_id):
 		return
 	_focus_points[focus_id]["weight_target"] = 0.0
-	_focus_points[focus_id]["fade_speed"] = 1.0 / max(blend_out, 0.0001)
+	_focus_points[focus_id]["fade_speed"] = 1.0 / maxf(blend_out, 0.0001)
 
 
 ## 立即切到玩家位置（瞬移用），跳过平滑。可在玩家死亡复活时调用。
@@ -451,7 +451,7 @@ func _soft_limit_axis(value: float, min_val: float, max_val: float, softness: fl
 	if value >= max_val:
 		return max_val
 	# 在软区内：用 smoothstep 减速逼近
-	var soft := min(softness, (max_val - min_val) * 0.5)
+	var soft := minf(softness, (max_val - min_val) * 0.5)
 	if value < min_val + soft:
 		var t := (value - min_val) / soft
 		t = _smoothstep01(t)
