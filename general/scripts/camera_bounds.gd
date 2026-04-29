@@ -21,7 +21,7 @@ enum FollowMode {
 enum BoundsSource {
 	AUTO_FROM_COLLISION,    # 边界 = CollisionShape2D 的矩形
 	CUSTOM_FROM_MARKER,     # 边界 = BoundsCenter Marker2D + custom_bounds_size
-	                        # （触发区可以做大一点，提前进入）
+							# （触发区可以做大一点，提前进入）
 }
 
 # ============================================================================
