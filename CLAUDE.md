@@ -75,7 +75,7 @@ playground.tscn  开发测试场景（主场景）
 | `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
 | `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
 | `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
-| `priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
+| `zone_priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
 | `transition_duration` | 过渡时长（秒） |
 
 ### 隐藏房间配置示例
@@ -85,7 +85,7 @@ CameraZone (Area2D)
   mode = LOCK_TO_CENTER
   bounds_source = CUSTOM_FROM_MARKER
   custom_bounds_size = Vector2(256, 180)  ← 这个房间的边界大小
-  priority = 10                           ← 高于外层普通区域
+  zone_priority = 10                      ← 高于外层普通区域
   transition_duration = 0.6
   CollisionShape2D   ← 做大一些，提前触发
   BoundsCenter (Marker2D) ← 放在房间中心

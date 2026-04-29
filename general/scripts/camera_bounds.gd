@@ -45,7 +45,7 @@ enum BoundsSource {
 
 @export_group("Priority & Transition")
 ## 优先级。隐藏房间嵌在大房间里时，给隐藏房间设更大的值，让它覆盖外层
-@export_range(-10, 100, 1) var priority: int = 0
+@export_range(-10, 100, 1) var zone_priority: int = 0
 
 ## 进入/退出此区域时的过渡时长（秒）
 @export_range(0.0, 3.0, 0.05) var transition_duration: float = 0.4
@@ -112,7 +112,7 @@ func _push_to_camera() -> void:
 	if _camera == null:
 		return
 	_camera.push_zone(get_instance_id(), {
-		"priority": priority,
+		"priority": zone_priority,
 		"bounds": _compute_bounds(),
 		"lock_to_center": mode == FollowMode.LOCK_TO_CENTER,
 		"zoom_override": zoom_override,
