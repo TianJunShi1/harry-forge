@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://dgjrbwlwhdtny" path="res://Player/player.tscn" id="1_rupst"]
 [ext_resource type="PackedScene" uid="uid://bc5woagptill0" path="res://Interactable/BouncePad/BouncePad.tscn" id="2_wt17y"]
-[ext_resource type="PackedScene" uid="uid://bm3c9p7qk2xt5" path="res://general/game_camera.tscn" id="3_cam01"]
+[ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="3_cam01"]
 
 [sub_resource type="Gradient" id="Gradient_edjgo"]
 colors = PackedColorArray(0, 0, 0, 1, 0, 0, 0, 1)
@@ -27,7 +27,7 @@ size = Vector2(64, 64)
 
 [node name="playground" type="Node2D" unique_id=137952217]
 
-[node name="GameCamera" parent="." instance=ExtResource("3_cam01")]
+[node name="GameCamera" parent="." unique_id=396119301 instance=ExtResource("3_cam01")]
 
 [node name="Block1" type="Sprite2D" parent="." unique_id=1661634109]
 position = Vector2(235, 273.99997)

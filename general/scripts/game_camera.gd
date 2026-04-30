@@ -19,7 +19,7 @@ class_name GameCamera2D extends Camera2D
 ## 跟随的目标节点（通常是 Player）；留空则自动查找 "player" 组
 @export var follow_target: Node2D
 ## 跟随平滑度，值越大反应越快（典型范围 2~8）
-@export_range(0.1, 20.0, 0.1) var follow_smoothing: float = 4.0
+@export_range(0.1, 20.0, 0.1) var follow_smoothing: float = 3.0
 
 @export_group("Look Ahead")
 ## 是否启用前视偏移

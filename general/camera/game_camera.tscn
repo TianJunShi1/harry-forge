@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bm3dap7qk2xt5"]
+
+[ext_resource type="Script" uid="uid://f6ab458871d" path="res://general/scripts/game_camera.gd" id="1_cam01"]
+
+[node name="GameCamera" type="Camera2D" unique_id=317918204 groups=["game_camera"]]
+script = ExtResource("1_cam01")
+follow_smoothing = 4.0
+look_ahead_distance = 40.0
+bounds_softness = 80.0
