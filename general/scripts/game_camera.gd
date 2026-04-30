@@ -142,7 +142,8 @@ func _process(delta: float) -> void:
 	_displayed_zoom = _displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
 
 	# 硬边界安全网（target 已被软限过，这里几乎不触发）
-	if _target_has_bounds:
+	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
+	if _target_has_bounds and not _lock_transition_active:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
 
 	global_position = _smoothed_position
@@ -284,6 +285,7 @@ func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: flo
 			_lock_tween_duration = maxf(duration, 0.0001)
 		# 未初始化时跳过过渡，_process 第一帧会直接快照到 lock_center
 		_look_ahead_value = 0.0
+		_facing_target = 0.0
 	else:
 		# 退出锁定：_smoothed_position 留在当前位置（通常是 lock_center 附近），
 		# follow smoothing 负责将相机平滑地引导回玩家，无需额外 tween
