@@ -5,5 +5,5 @@
 [node name="GameCamera" type="Camera2D" unique_id=317918204 groups=["game_camera"]]
 script = ExtResource("1_cam01")
 follow_smoothing = 4.0
-look_ahead_distance = 40.0
+look_ahead_distance = 30.0
 bounds_softness = 80.0

@@ -33,7 +33,7 @@ mode = 1
 bounds_source = 1
 custom_bounds_size = Vector2(256, 180)
 zone_priority = 10
-transition_duration = 1.35
+transition_duration = 1.5
 
 [node name="CollisionShape2D" parent="CameraBounds2" index="0" unique_id=550665942]
 position = Vector2(-236.75, -71)
