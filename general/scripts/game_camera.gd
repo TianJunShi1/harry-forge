@@ -87,6 +87,10 @@ var _facing_target: float = 0.0
 var _look_ahead_value: float = 0.0
 var _initialized: bool = false
 
+## 像素完美渲染：浮点位置中无法被 floor() 表达的小数残差。
+## 由 PixelRenderer 在屏幕级以 -subpixel_offset * scale 平移 DisplaySprite 来恢复亚像素平滑感。
+var subpixel_offset: Vector2 = Vector2.ZERO
+
 # 临时聚焦点：id -> { position, weight_target, weight_current, fade_speed }
 var _focus_points: Dictionary = {}
 
@@ -105,7 +109,9 @@ func _ready() -> void:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
 		_smoothed_position = follow_target.global_position
-		global_position = _smoothed_position
+		var snapped := _smoothed_position.floor()
+		subpixel_offset = _smoothed_position - snapped
+		global_position = snapped
 		_initialized = true
 
 
@@ -119,7 +125,9 @@ func _process(delta: float) -> void:
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
 		_smoothed_position = _target_lock_center if _target_lock_to_center else follow_target.global_position
-		global_position = _smoothed_position
+		var snapped := _smoothed_position.floor()
+		subpixel_offset = _smoothed_position - snapped
+		global_position = snapped
 		_initialized = true
 
 	_advance_bounds_transition(delta)
@@ -151,7 +159,10 @@ func _process(delta: float) -> void:
 	if _target_has_bounds and not _lock_transition_active:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
 
-	global_position = _smoothed_position
+	# 像素完美：snap 到整数像素，把残余小数交给 PixelRenderer 在屏幕级补偿
+	var snapped := _smoothed_position.floor()
+	subpixel_offset = _smoothed_position - snapped
+	global_position = snapped
 	zoom = _displayed_zoom
 
 	if draw_debug:
@@ -224,7 +235,9 @@ func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
 	_smoothed_position = follow_target.global_position
-	global_position = _smoothed_position
+	var snapped := _smoothed_position.floor()
+	subpixel_offset = _smoothed_position - snapped
+	global_position = snapped
 	_lock_transition_active = false
 	_lock_tween_t = 1.0
 	_bounds_tween_t = 1.0

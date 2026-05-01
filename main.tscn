@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://cmain8dvtpr2w"]
+
+[ext_resource type="PackedScene" path="res://general/camera/pixel_renderer.tscn" id="1_renderer"]
+[ext_resource type="PackedScene" uid="uid://c71co16p8pdqd" path="res://playground.tscn" id="2_level"]
+
+[node name="Main" type="Node2D"]
+
+[node name="PixelRenderer" parent="." instance=ExtResource("1_renderer")]
+level = ExtResource("2_level")
