@@ -33,6 +33,11 @@ class_name GameCamera2D extends Camera2D
 ## 触发前视的最低速度（像素/秒）
 @export_range(0.0, 200.0, 1.0) var look_ahead_velocity_threshold: float = 30.0
 
+@export_group("Framing")
+## 摄像机相对玩家的垂直偏移（像素）。负值=画面整体下移，玩家在屏幕下半（看到更多上方）。
+## lock 模式下自动失效（房间中心由 zone 决定）。
+@export_range(-200.0, 200.0, 1.0) var vertical_offset: float = -32.0
+
 @export_group("Bounds")
 ## 软边界宽度（像素）。0 = 硬 clamp，>0 = 靠近边界时减速
 @export_range(0.0, 300.0, 1.0) var bounds_softness: float = 60.0
@@ -313,6 +318,10 @@ func _advance_bounds_transition(delta: float) -> void:
 
 func _compute_desired_position(delta: float) -> Vector2:
 	var target_pos: Vector2 = follow_target.global_position
+
+	# 垂直构图偏移：与 look-ahead 正交（一个走 X 一个走 Y），互不干扰；
+	# 直接叠加到 target_pos，由外层 follow_smoothing 统一平滑，无需独立缓动
+	target_pos.y += vertical_offset
 
 	# 前视偏移
 	if look_ahead_enabled:
