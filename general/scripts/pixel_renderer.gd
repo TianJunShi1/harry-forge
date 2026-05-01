@@ -22,6 +22,8 @@ var _screen_center: Vector2
 
 
 func _ready() -> void:
+	# 必须在 GameCamera（priority 0）之后处理，否则读到上一帧的 subpixel_offset 导致抖动
+	process_priority = 1
 	_sub_viewport.size = game_size + Vector2i.ONE
 	_display.texture = _sub_viewport.get_texture()
 	_display.scale = Vector2(screen_scale, screen_scale)
@@ -37,6 +39,12 @@ func _process(_delta: float) -> void:
 		if _camera == null:
 			return
 	_display.position = _screen_center - _camera.subpixel_offset * float(screen_scale)
+
+
+func _input(event: InputEvent) -> void:
+	# SubViewport 不在 SubViewportContainer 内，需手动转发输入事件
+	_sub_viewport.push_input(event)
+	_sub_viewport.push_unhandled_input(event)
 
 
 func _find_camera_in_subviewport() -> GameCamera2D:
