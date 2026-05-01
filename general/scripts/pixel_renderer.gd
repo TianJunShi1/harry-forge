@@ -66,11 +66,12 @@ func _input(event: InputEvent) -> void:
 
 func _transform_input(event: InputEvent) -> InputEvent:
 	if event is InputEventMouse:
-		var local := (event.position - _display_origin) / float(_current_scale)
-		var clone: InputEvent = event.duplicate()
-		(clone as InputEventMouse).position = local
+		var mouse := event as InputEventMouse
+		var local: Vector2 = (mouse.position - _display_origin) / float(_current_scale)
+		var clone := event.duplicate() as InputEventMouse
+		clone.position = local
 		if clone is InputEventMouseMotion:
-			(clone as InputEventMouseMotion).relative = (event as InputEventMouseMotion).relative / float(_current_scale)
+			(clone as InputEventMouseMotion).relative = (mouse as InputEventMouseMotion).relative / float(_current_scale)
 		return clone
 	return event
 
