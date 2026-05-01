@@ -105,7 +105,7 @@ func _ready() -> void:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
 		_smoothed_position = follow_target.global_position
-		global_position = _smoothed_position
+		global_position = _smoothed_position.round()
 		_initialized = true
 
 
@@ -119,7 +119,7 @@ func _process(delta: float) -> void:
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
 		_smoothed_position = _target_lock_center if _target_lock_to_center else follow_target.global_position
-		global_position = _smoothed_position
+		global_position = _smoothed_position.round()
 		_initialized = true
 
 	_advance_bounds_transition(delta)
@@ -151,7 +151,7 @@ func _process(delta: float) -> void:
 	if _target_has_bounds and not _lock_transition_active:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
 
-	global_position = _smoothed_position
+	global_position = _smoothed_position.round()
 	zoom = _displayed_zoom
 
 	if draw_debug:
@@ -224,7 +224,7 @@ func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
 	_smoothed_position = follow_target.global_position
-	global_position = _smoothed_position
+	global_position = _smoothed_position.round()
 	_lock_transition_active = false
 	_lock_tween_t = 1.0
 	_bounds_tween_t = 1.0
