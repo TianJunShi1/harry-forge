@@ -83,6 +83,9 @@ var _lock_tween_duration: float = 0.4
 
 # 跟随
 var _smoothed_position: Vector2
+# 显示位置：仅在 _smoothed_position.floor() 跨越像素边界时推进，
+# 避免亚像素抖动（pixel shimmer）。所有内部计算仍用 _smoothed_position 浮点精度。
+var _display_position: Vector2
 var _facing_target: float = 0.0
 var _look_ahead_value: float = 0.0
 var _initialized: bool = false
@@ -105,7 +108,8 @@ func _ready() -> void:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
 		_smoothed_position = follow_target.global_position
-		global_position = _smoothed_position.round()
+		_display_position = _smoothed_position.floor()
+		global_position = _display_position
 		_initialized = true
 
 
@@ -119,7 +123,8 @@ func _process(delta: float) -> void:
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
 		_smoothed_position = _target_lock_center if _target_lock_to_center else follow_target.global_position
-		global_position = _smoothed_position.round()
+		_display_position = _smoothed_position.floor()
+		global_position = _display_position
 		_initialized = true
 
 	_advance_bounds_transition(delta)
@@ -151,7 +156,12 @@ func _process(delta: float) -> void:
 	if _target_has_bounds and not _lock_transition_active:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
 
-	global_position = _smoothed_position.round()
+	# 像素门槛更新：仅当 floor 后的位置跨越整数边界时推进显示坐标，
+	# 慢速时显示坐标在像素上"驻留"，消除 round() 在 0.5 边界的双向跳跃
+	var floored := _smoothed_position.floor()
+	if floored != _display_position:
+		_display_position = floored
+	global_position = _display_position
 	zoom = _displayed_zoom
 
 	if draw_debug:
@@ -224,7 +234,8 @@ func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
 	_smoothed_position = follow_target.global_position
-	global_position = _smoothed_position.round()
+	_display_position = _smoothed_position.floor()
+	global_position = _display_position
 	_lock_transition_active = false
 	_lock_tween_t = 1.0
 	_bounds_tween_t = 1.0
