@@ -41,11 +41,13 @@ func _recalculate_layout() -> void:
 	# 同时考虑横竖向，取小的；最小 1 防止超小窗口出现 0 倍
 	var scale_y := int(floor(window_size.y / float(game_size.y)))
 	var scale_x := int(floor(window_size.x / float(game_size.x)))
-	_current_scale = max(1, min(scale_x, scale_y))
+	_current_scale = maxi(1, mini(scale_x, scale_y))
 	_display.scale = Vector2(_current_scale, _current_scale)
 	_screen_center = window_size * 0.5
 	_display.position = _screen_center
-	_display_origin = _screen_center - Vector2(game_size) * 0.5 * float(_current_scale)
+	# 用实际 SubViewport 尺寸（game_size + 1px slack）计算左上角，消除 0.5px 鼠标映射偏差
+	var actual_size := Vector2(game_size + Vector2i.ONE)
+	_display_origin = _screen_center - actual_size * 0.5 * float(_current_scale)
 
 
 func _process(_delta: float) -> void:
@@ -59,9 +61,8 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	# SubViewport 不在 SubViewportContainer 内，需手动转发输入事件。
 	# 鼠标事件还要把屏幕坐标映射回 480×270 游戏坐标系
-	var fwd := _transform_input(event)
-	_sub_viewport.push_input(fwd)
-	_sub_viewport.push_unhandled_input(fwd)
+	# push_input 已走完整 pipeline（含 _unhandled_input），无需再调 push_unhandled_input
+	_sub_viewport.push_input(_transform_input(event))
 
 
 func _transform_input(event: InputEvent) -> InputEvent:

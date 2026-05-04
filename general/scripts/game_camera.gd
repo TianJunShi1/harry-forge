@@ -156,7 +156,8 @@ func _process(delta: float) -> void:
 
 	# 硬边界安全网（target 已被软限过，这里几乎不触发）
 	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
-	if _target_has_bounds and not _lock_transition_active:
+	# bounds 过渡期间跳过硬限：_displayed_bounds 每帧收缩，clamp 会把相机钉在中间态产生跳变
+	if _target_has_bounds and not _lock_transition_active and _bounds_tween_t >= 1.0:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
 
 	# 像素完美：snap 到整数像素，把残余小数交给 PixelRenderer 在屏幕级补偿
@@ -285,7 +286,7 @@ func _begin_bounds_transition(new_bounds: Rect2, has_bounds: bool, duration: flo
 		_bounds_tween_t = 1.0
 	else:
 		_bounds_tween_from = _displayed_bounds
-		_bounds_tween_duration = max(duration, 0.0001)
+		_bounds_tween_duration = maxf(duration, 0.0001)
 		_bounds_tween_t = 0.0
 	_target_bounds = new_bounds
 	_target_has_bounds = has_bounds

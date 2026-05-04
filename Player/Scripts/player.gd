@@ -50,7 +50,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y += gravity * fall_gravity_multiplier * delta
 	else:
 		velocity.y += gravity * delta
-	velocity.y = min(velocity.y, max_fall_speed)
+	velocity.y = minf(velocity.y, max_fall_speed)
 
 	if current_state:
 		change_state(current_state.physics_process(delta))
@@ -65,7 +65,7 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		coyote_timer = coyote_duration
 	else:
-		coyote_timer = max(coyote_timer - delta, 0.0)
+		coyote_timer = maxf(coyote_timer - delta, 0.0)
 
 
 func _process(delta: float) -> void:
@@ -150,7 +150,7 @@ func request_drop_through() -> void:
 		return
 	set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, false)
 	drop_through_timer = drop_through_duration
-	velocity.y = max(velocity.y, 30.0)
+	velocity.y = maxf(velocity.y, 30.0)
 
 
 func apply_bounce(force: float) -> void:

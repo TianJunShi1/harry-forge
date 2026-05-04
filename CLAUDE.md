@@ -1,7 +1,23 @@
 # Harry Forge — 代码库说明
 
 Godot 4.6 2D 平台跳跃游戏，像素风格，银河恶魔城玩法。
-分辨率：480×270（窗口 1440×810，canvas_items 拉伸）。
+分辨率：480×270（SubViewport 内部渲染，窗口以最大整数倍缩放显示）。
+
+## 渲染架构
+
+```
+main.tscn  ← 真正的主场景入口（project.godot 的 run/main_scene）
+└─ PixelRenderer (Node2D)           general/camera/pixel_renderer.tscn
+   ├─ SubViewport (481×271)         游戏内容在此渲染，尺寸 = game_size + 1px slack
+   │  └─ playground.tscn / 关卡     PixelRenderer.level 赋值，不再是 main_scene
+   │     ├─ GameCamera2D            关卡摄像机（整数像素对齐）
+   │     ├─ TileMapLayer / 地图
+   │     └─ Player
+   └─ DisplaySprite (Sprite2D)      SubViewport 贴图，以当前整数倍缩放居中显示
+```
+
+PixelRenderer 在每帧从 GameCamera 读取 `subpixel_offset`，对 DisplaySprite 反向平移，
+恢复亚像素平滑感（消除像素抖动/shimmer）。
 
 ## 目录结构
 
@@ -16,13 +32,17 @@ Level/           地图场景
   00_chapter1/   第 0 章第 1 幕
   tileset/       图块集
 general/         通用工具
-  game_camera.tscn         关卡摄像机场景（放在关卡根节点）
-  camera_bounds.tscn       摄像机区域预制体（CameraZone）
+  camera/
+    pixel_renderer.tscn  像素完美渲染容器场景
+  game_camera.tscn       关卡摄像机场景（放在关卡根节点）
+  camera_bounds.tscn     摄像机区域预制体（CameraZone）
   scripts/
-    game_camera.gd         GameCamera2D 脚本
-    camera_bounds.gd       CameraZone 脚本
+    pixel_renderer.gd    PixelRenderer 脚本（自动整数倍缩放）
+    game_camera.gd       GameCamera2D 脚本
+    camera_bounds.gd     CameraZone 脚本
 icon/            编辑器图标
-playground.tscn  开发测试场景（主场景）
+main.tscn        主场景入口（含 PixelRenderer）
+playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scene）
 ```
 
 ## 玩家状态机

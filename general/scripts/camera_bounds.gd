@@ -104,11 +104,16 @@ func _on_body_entered(body: Node) -> void:
 func _on_body_exited(body: Node) -> void:
 	if not (body is Player):
 		return
+	if _camera == null:
+		_resolve_camera()
 	if _camera:
 		_camera.pop_zone(get_instance_id())
 
 
 func _push_to_camera() -> void:
+	# PixelRenderer 延迟加载关卡时 GameCamera 可能比 CameraZone 晚 ready，重试一次
+	if _camera == null:
+		_resolve_camera()
 	if _camera == null:
 		return
 	_camera.push_zone(get_instance_id(), {
@@ -127,8 +132,8 @@ func _compute_bounds() -> Rect2:
 			# 边界至少不能比视口还小（防止 lock 模式下出现奇怪的居中）
 			var viewport_size := get_viewport_rect().size
 			var final_size := Vector2(
-				max(custom_bounds_size.x, viewport_size.x),
-				max(custom_bounds_size.y, viewport_size.y)
+				maxf(custom_bounds_size.x, viewport_size.x),
+				maxf(custom_bounds_size.y, viewport_size.y)
 			)
 			return Rect2(center - final_size * 0.5, final_size)
 		_:
