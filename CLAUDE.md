@@ -86,6 +86,10 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 | `bounds_softness` | 60 px | 软边界宽度（0=硬边界） |
 | `default_zoom` | (1,1) | 无区域覆盖时的缩放 |
 | `zoom_smoothing` | 3.0 | Zoom 过渡平滑度 |
+| `look_y_enabled` | true | 是否启用视线偏移（W/S 静止时上下看） |
+| `look_y_distance` | 48 px | 上/下观察最大位移 |
+| `look_y_engage_speed` | 1.5 | 按键后偏移建立速度 |
+| `look_y_return_speed` | 3.0 | 松键后回中速度 |
 | `draw_debug` | false | 调试时显示边界和聚焦点 |
 
 ### CameraZone 参数速查

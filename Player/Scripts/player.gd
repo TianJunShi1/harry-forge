@@ -142,6 +142,14 @@ func get_camera_facing_intent() -> float:
 	return direction.x
 
 
+## GameCamera2D 调用此方法获取视线上下意图。
+## 仅在地面静止时有效；-1=向上看，0=不偏移，1=向下看。
+func get_camera_look_y_intent() -> float:
+	if is_on_floor() and not has_horizontal_input():
+		return direction.y
+	return 0.0
+
+
 # ==========================================
 # 🪜 单向平台穿透
 # ==========================================

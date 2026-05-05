@@ -37,6 +37,14 @@ class_name GameCamera2D extends Camera2D
 ## 摄像机相对玩家的垂直偏移（像素）。负值=画面整体下移，玩家在屏幕下半（看到更多上方）。
 ## lock 模式下自动失效（房间中心由 zone 决定）。
 @export_range(-200.0, 200.0, 1.0) var vertical_offset: float = -32.0
+## 是否启用视线偏移（玩家静止按 W/S 时镜头上/下平移）
+@export var look_y_enabled: bool = true
+## 上/下观察时镜头最大垂直位移（游戏像素）
+@export_range(0.0, 300.0, 1.0) var look_y_distance: float = 48.0
+## 按键后偏移建立速度（值越小越慢/越有重量感，典型 1~3）
+@export_range(0.1, 20.0, 0.1) var look_y_engage_speed: float = 1.5
+## 松键后回中速度（建议比 engage 快，让回弹干脆）
+@export_range(0.1, 20.0, 0.1) var look_y_return_speed: float = 3.0
 
 @export_group("Bounds")
 ## 软边界宽度（像素）。0 = 硬 clamp，>0 = 靠近边界时减速
@@ -85,6 +93,7 @@ var _lock_tween_duration: float = 0.4
 var _smoothed_position: Vector2
 var _facing_target: float = 0.0
 var _look_ahead_value: float = 0.0
+var _look_y_value: float = 0.0
 var _initialized: bool = false
 
 ## 像素完美渲染：浮点位置中无法被 floor() 表达的小数残差。
@@ -247,6 +256,7 @@ func snap_to_target() -> void:
 	_displayed_zoom = _target_zoom
 	_displayed_bounds = _target_bounds
 	_look_ahead_value = 0.0
+	_look_y_value = 0.0
 
 
 # ============================================================================
@@ -339,6 +349,13 @@ func _compute_desired_position(delta: float) -> Vector2:
 	# 直接叠加到 target_pos，由外层 follow_smoothing 统一平滑，无需独立缓动
 	target_pos.y += vertical_offset
 
+	# 视线偏移：玩家静止地面按 W/S 时，镜头向上/下平移预览
+	if look_y_enabled:
+		var y_intent := _read_look_y_intent()
+		var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
+		_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
+		target_pos.y += _look_y_value * look_y_distance
+
 	# 前视偏移
 	if look_ahead_enabled:
 		var intent := _read_facing_intent()
@@ -364,6 +381,12 @@ func _compute_desired_position(delta: float) -> Vector2:
 		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, _displayed_zoom)
 
 	return target_pos
+
+
+func _read_look_y_intent() -> float:
+	if follow_target.has_method("get_camera_look_y_intent"):
+		return follow_target.get_camera_look_y_intent()
+	return 0.0
 
 
 func _read_facing_intent() -> float:
