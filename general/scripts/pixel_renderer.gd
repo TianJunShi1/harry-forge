@@ -55,7 +55,10 @@ func _process(_delta: float) -> void:
 		_camera = _find_camera_in_subviewport()
 		if _camera == null:
 			return
-	_display.position = _screen_center - _camera.subpixel_offset * float(_current_scale)
+	# 显式取整到物理像素：scale=3 时即 1/3 game-px 步进。
+	# 不依赖 project.godot 的 snap_2d_transforms_to_pixel；意图写在代码里。
+	var phys_offset := (_camera.subpixel_offset * float(_current_scale)).round()
+	_display.position = _screen_center - phys_offset
 
 
 func _input(event: InputEvent) -> void:

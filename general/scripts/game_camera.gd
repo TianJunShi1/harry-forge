@@ -72,7 +72,7 @@ var _bounds_tween_t: float = 1.0
 var _bounds_tween_duration: float = 0.0
 var _bounds_tween_from: Rect2 = Rect2()
 
-# Zoom 显示值（在 _process 中指数平滑至 _target_zoom）
+# Zoom 显示值（在 _physics_process 中指数平滑至 _target_zoom）
 var _displayed_zoom: Vector2 = Vector2.ONE
 
 # 进入锁定的位置过渡：直接驱动 _smoothed_position，绕过 follow smoothing
@@ -115,7 +115,9 @@ func _ready() -> void:
 		_initialized = true
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	# 跑在 _physics_process 与 Player.move_and_slide 同频（60Hz），消除"渲染帧追物理阶梯函数"
+	# 产生的 60Hz 节拍微抖。指数 lerp 1-exp(-k·delta) 是连续时间常数，频率切换不影响收敛轨迹。
 	# 延迟加载场景时 Player 比 Camera 晚 ready，这里重试自动发现
 	if not is_instance_valid(follow_target):
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
@@ -302,7 +304,7 @@ func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: flo
 			_lock_transition_from = _smoothed_position
 			_lock_tween_t = 0.0
 			_lock_tween_duration = maxf(duration, 0.0001)
-		# 未初始化时跳过过渡，_process 第一帧会直接快照到 lock_center
+		# 未初始化时跳过过渡，_physics_process 第一帧会直接快照到 lock_center
 		_look_ahead_value = 0.0
 		_facing_target = 0.0
 	else:
