@@ -43,6 +43,12 @@ enum BoundsSource {
 ## 注意：Godot 4 Camera2D 的 zoom > 1 是放大（看更少），< 1 是缩小（看更多）
 @export var zoom_override: Vector2 = Vector2.ZERO
 
+## 隐藏房间专用 zoom 标量（仅 mode = LOCK_TO_CENTER 时生效）。
+## 1.0 = 无效果；>1 = 放大（看更少，更聚焦/压迫感）；<1 = 缩小（看更多）。
+## 非 1.0 时会覆盖 zoom_override；过渡时长由本 zone 的 transition_duration +
+## GameCamera2D 的 zoom_smoothing 联合控制。
+@export_range(0.5, 3.0, 0.05) var hidden_room_zoom: float = 1.0
+
 @export_group("Priority & Transition")
 ## 优先级。隐藏房间嵌在大房间里时，给隐藏房间设更大的值，让它覆盖外层
 @export_range(-10, 100, 1) var zone_priority: int = 0
@@ -116,11 +122,15 @@ func _push_to_camera() -> void:
 		_resolve_camera()
 	if _camera == null:
 		return
+	# 隐藏房间专用 zoom 在 LOCK_TO_CENTER 模式下覆盖 zoom_override；其它情况沿用 zoom_override
+	var effective_zoom: Vector2 = zoom_override
+	if mode == FollowMode.LOCK_TO_CENTER and not is_equal_approx(hidden_room_zoom, 1.0):
+		effective_zoom = Vector2(hidden_room_zoom, hidden_room_zoom)
 	_camera.push_zone(get_instance_id(), {
 		"priority": zone_priority,
 		"bounds": _compute_bounds(),
 		"lock_to_center": mode == FollowMode.LOCK_TO_CENTER,
-		"zoom_override": zoom_override,
+		"zoom_override": effective_zoom,
 		"transition_duration": transition_duration,
 	})
 

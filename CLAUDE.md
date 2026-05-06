@@ -100,6 +100,7 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 | `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
 | `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
 | `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
+| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 模式生效，1.0=无效果，>1=放大） |
 | `zone_priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
 | `transition_duration` | 过渡时长（秒） |
 
@@ -110,6 +111,7 @@ CameraZone (Area2D)
   mode = LOCK_TO_CENTER
   bounds_source = CUSTOM_FROM_MARKER
   custom_bounds_size = Vector2(256, 180)  ← 这个房间的边界大小
+  hidden_room_zoom = 1.3                  ← 进入时镜头放大 1.3x（压迫感/聚焦）
   zone_priority = 10                      ← 高于外层普通区域
   transition_duration = 0.6
   CollisionShape2D   ← 做大一些，提前触发
