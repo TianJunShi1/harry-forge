@@ -80,8 +80,10 @@ var _bounds_tween_t: float = 1.0
 var _bounds_tween_duration: float = 0.0
 var _bounds_tween_from: Rect2 = Rect2()
 
-# Zoom 显示值（在 _physics_process 中指数平滑至 _target_zoom）
-var _displayed_zoom: Vector2 = Vector2.ONE
+# Zoom 显示值（在 _process 中指数平滑至 _target_zoom）。
+# 关键：本值不写回 Camera2D.zoom，由 PixelRenderer 在屏幕级以 DisplaySprite.scale 应用。
+# 这样 SubViewport 内部永远 1:1 渲染（pixel-perfect），缩放仅在外层做整数倍 NEAREST 上采样。
+var displayed_zoom: Vector2 = Vector2.ONE
 
 # 进入锁定的位置过渡：直接驱动 _smoothed_position，绕过 follow smoothing
 var _lock_transition_active: bool = false
@@ -112,8 +114,9 @@ func _ready() -> void:
 	position_smoothing_enabled = false
 	make_current()
 	_target_zoom = default_zoom
-	_displayed_zoom = default_zoom
-	zoom = default_zoom
+	displayed_zoom = default_zoom
+	# 关键：Camera2D.zoom 永远保持 ONE，缩放在外层 PixelRenderer 用 DisplaySprite.scale 实现。
+	zoom = Vector2.ONE
 	if follow_target == null:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
@@ -166,7 +169,7 @@ func _physics_process(delta: float) -> void:
 	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
 	# bounds 过渡期间跳过硬限：_displayed_bounds 每帧收缩，clamp 会把相机钉在中间态产生跳变
 	if _target_has_bounds and not _lock_transition_active and _bounds_tween_t >= 1.0:
-		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, _displayed_zoom)
+		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, displayed_zoom)
 
 	# 像素完美：snap 到整数像素，把残余小数交给 PixelRenderer 在屏幕级补偿
 	var snapped := _smoothed_position.floor()
@@ -178,11 +181,11 @@ func _process(delta: float) -> void:
 	# Zoom 指数平滑跑在 display rate（_process），消除 60Hz 步进感。
 	# zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
 	if _initialized:
-		_displayed_zoom = _displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
+		displayed_zoom = displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
 		# zoom 收敛到目标后 snap，防止无限追逼残差
-		if _displayed_zoom.distance_to(_target_zoom) < 0.005:
-			_displayed_zoom = _target_zoom
-		zoom = _displayed_zoom
+		if displayed_zoom.distance_to(_target_zoom) < 0.005:
+			displayed_zoom = _target_zoom
+		# 关键：不写回 Camera2D.zoom；PixelRenderer 用 DisplaySprite.scale 在外层应用。
 	if draw_debug:
 		queue_redraw()
 
@@ -259,7 +262,7 @@ func snap_to_target() -> void:
 	_lock_transition_active = false
 	_lock_tween_t = 1.0
 	_bounds_tween_t = 1.0
-	_displayed_zoom = _target_zoom
+	displayed_zoom = _target_zoom
 	_displayed_bounds = _target_bounds
 	_look_ahead_value = 0.0
 	_look_y_value = 0.0
@@ -384,7 +387,7 @@ func _compute_desired_position(delta: float) -> Vector2:
 
 	# 软边界减速
 	if _target_has_bounds:
-		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, _displayed_zoom)
+		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, displayed_zoom)
 
 	return target_pos
 

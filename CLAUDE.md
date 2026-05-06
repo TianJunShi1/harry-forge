@@ -67,8 +67,12 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 - **Player 不知道 Camera 的存在**，Camera 主动去找 Player（`"player"` 组）。
 - 区域进入/退出由 `CameraZone`（`general/camera_bounds.tscn`）负责通知 Camera。
 - **平滑频率**：Camera 的 `_smoothed_position` 更新跑在 `_physics_process` 内，与 Player `move_and_slide` 同频（60Hz）；这样高刷屏上不会出现相机用 display rate 追物理阶梯函数产生的 60Hz 节拍微抖。PixelRenderer 仍在 `_process` 读取 `subpixel_offset` 做屏幕级补偿，offset 在两个物理 tick 之间保持常数。
-- **Zoom 频率**：`_displayed_zoom` 插值跑在 `_process`（display rate）。Zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑（zoom 没有类似 subpixel_offset 的补偿机制，必须 display rate 更新）。
-- **Zoom 像素清晰度**：非整数 Camera2D.zoom 在 NEAREST + 整数倍上采样下产生不均匀 texel 宽度。PixelRenderer 自动切换：zoom ≈ 整数 → NEAREST（pixel-perfect）；zoom 非整数 → LINEAR（统一软化）。
+- **Zoom 频率**：`displayed_zoom` 插值跑在 `_process`（display rate）。Zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
+- **Zoom 渲染架构（蔚蓝式）**：`Camera2D.zoom` **永远保持 Vector2.ONE**，缩放不在 SubViewport 内部做。`displayed_zoom` 仅作为数值由 PixelRenderer 读取，应用到 `DisplaySprite.scale = _current_scale × displayed_zoom`。
+  - 内层 SubViewport 始终 1:1 渲染，绝对 pixel-perfect、无 shimmer
+  - 外层 DisplaySprite 用 NEAREST 在物理像素上做缩放：整数 zoom（2.0/3.0）每个像素完美整数倍；非整数 zoom（1.3）有的物理像素 3px 宽有的 4px 宽，但**每个像素仍绝对锐利**（蔚蓝的"sharp non-integer zoom"效果）
+  - `subpixel_offset` 补偿公式：`offset × _current_scale × zoom_factor`（effective_scale 物理像素）
+  - 注意：本架构下 zoom < 1 表现为"显示缩小+黑边"，不再是"看到更多世界"。"看更多"需用其他机制（如调整 SubViewport 大小，未实现）
 
 ### 使用步骤
 
@@ -102,7 +106,7 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 | `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
 | `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
 | `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
-| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 生效；整数值 NEAREST 完全清晰，非整数值 PixelRenderer 自动切 LINEAR 软化） |
+| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 生效；蔚蓝式外层缩放，任意值都锐利无 LINEAR 模糊） |
 | `zone_priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
 | `transition_duration` | 过渡时长（秒） |
 

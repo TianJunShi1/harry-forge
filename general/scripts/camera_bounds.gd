@@ -44,13 +44,15 @@ enum BoundsSource {
 @export var zoom_override: Vector2 = Vector2.ZERO
 
 ## 隐藏房间专用 zoom 标量（仅 mode = LOCK_TO_CENTER 时生效）。
-## 1.0 = 无效果；>1 = 放大（看更少，更聚焦/压迫感）；<1 = 缩小（看更多）。
+## 1.0 = 无效果；>1 = 放大（看更少，画面聚焦感）。
 ## 非 1.0 时会覆盖 zoom_override；过渡时长由 GameCamera2D 的 zoom_smoothing 控制。
 ##
-## 像素清晰度：整数值（2.0）pixel-perfect（过渡完成后 PixelRenderer 自动恢复 NEAREST）。
-## 非整数值（1.3 等）在过渡中及静止时均保持 LINEAR 过滤（统一软化，无法消除）。
-## 想要无模糊的效果，必须使用整数。推荐 2.0。
-@export_range(0.5, 4.0, 1.0) var hidden_room_zoom: float = 1.0
+## 蔚蓝式架构下任何 zoom 值都不会有 LINEAR 模糊：
+## - 整数（2.0/3.0）：物理像素完美整数倍，pixel-perfect
+## - 非整数（1.3/1.5）：物理像素宽度不均（有的 3px 有的 4px），但每个像素绝对锐利
+##
+## 注意：本架构下 zoom < 1 是"画面缩小+黑边"而非"看更多世界"，请避开 < 1 的值。
+@export_range(1.0, 4.0, 0.05) var hidden_room_zoom: float = 1.0
 
 @export_group("Priority & Transition")
 ## 优先级。隐藏房间嵌在大房间里时，给隐藏房间设更大的值，让它覆盖外层

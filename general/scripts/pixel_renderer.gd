@@ -1,15 +1,19 @@
 class_name PixelRenderer extends Node2D
 
-## 像素完美渲染容器（自动整数倍缩放）。
+## 像素完美渲染容器（蔚蓝式 SubViewport 架构）。
 ##
 ## 工作原理：
-##   1. 关卡内容渲染到 SubViewport（内部尺寸 = game_size + 1px slack）
-##   2. SubViewport 内的 GameCamera2D 把 global_position floor 到整数像素，
-##      所以 SubViewport 输出永远像素对齐——无 shimmer
-##   3. DisplaySprite 把 SubViewport 按当前整数倍缩放显示到屏幕中心
-##   4. 每帧从 GameCamera2D 读 subpixel_offset，对 DisplaySprite 反向平移
-##      `-subpixel_offset * current_scale` 屏幕像素，恢复亚像素平滑感
-##   5. 窗口尺寸变化时自动重算最大整数缩放倍数（floor(window/game)），
+##   1. SubViewport 内部永远 1:1 渲染（GameCamera2D.zoom 恒为 ONE），
+##      内层 Camera2D 把 global_position floor 到整数像素，确保 SubViewport
+##      输出绝对 pixel-perfect——无亚像素采样错位、无 shimmer
+##   2. DisplaySprite 在外层做缩放：scale = _current_scale × camera.displayed_zoom
+##      整数 zoom（2.0/3.0）→ 物理像素完美整数倍；非整数 zoom（1.3 等）→
+##      NEAREST 采样下物理像素宽度不均（有 3px 有 4px）但每个像素绝对锐利
+##      这就是 Celeste 等顶级像素游戏的"sharp non-integer zoom"做法
+##   3. 每帧读 GameCamera2D.subpixel_offset（游戏像素残差），按
+##      `-subpixel_offset × _current_scale × zoom_factor` 平移 DisplaySprite，
+##      恢复亚像素级平滑移动
+##   4. 窗口尺寸变化时自动重算最大整数基础缩放倍数（floor(window/game)），
 ##      画面始终居中，未覆盖的区域为黑边
 
 @export var level: PackedScene
@@ -42,12 +46,10 @@ func _recalculate_layout() -> void:
 	var scale_y := int(floor(window_size.y / float(game_size.y)))
 	var scale_x := int(floor(window_size.x / float(game_size.x)))
 	_current_scale = maxi(1, mini(scale_x, scale_y))
-	_display.scale = Vector2(_current_scale, _current_scale)
 	_screen_center = window_size * 0.5
 	_display.position = _screen_center
-	# 用实际 SubViewport 尺寸（game_size + 1px slack）计算左上角，消除 0.5px 鼠标映射偏差
-	var actual_size := Vector2(game_size + Vector2i.ONE)
-	_display_origin = _screen_center - actual_size * 0.5 * float(_current_scale)
+	# DisplaySprite.scale 在 _process 里每帧根据 zoom 动态设置；这里仅给个初始值
+	_display.scale = Vector2(_current_scale, _current_scale)
 
 
 func _process(_delta: float) -> void:
@@ -55,30 +57,19 @@ func _process(_delta: float) -> void:
 		_camera = _find_camera_in_subviewport()
 		if _camera == null:
 			return
-	# 显式取整到物理像素，同时乘以 Camera2D.zoom：
-	# zoom 改变后 1 game pixel = zoom × _current_scale physical pixels，
-	# 若不乘 zoom，高缩放倍率下补偿量是实际所需的 1/zoom，相机会在整数像素间漂移。
-	var cam_zoom := _camera.zoom.x
-	var phys_offset := (_camera.subpixel_offset * float(_current_scale) * cam_zoom).round()
+	# 蔚蓝架构：缩放在外层做。effective_scale = 基础整数 × 显示 zoom。
+	# 整数 zoom 时 effective_scale 仍为整数 → 物理像素完美对齐；
+	# 非整数 zoom 时 effective_scale 非整数 → NEAREST 采样下物理像素宽度不均（3/4 px 交错）
+	# 但每个像素仍绝对锐利（无 LINEAR 羽化）。
+	var zoom_factor := _camera.displayed_zoom.x
+	var effective_scale := float(_current_scale) * zoom_factor
+	_display.scale = Vector2(effective_scale, effective_scale)
+	# subpixel 补偿：1 game pixel = effective_scale physical pixels，残差按此换算
+	var phys_offset := (_camera.subpixel_offset * effective_scale).round()
 	_display.position = _screen_center - phys_offset
-	_update_filter_for_zoom(cam_zoom)
-
-
-func _update_filter_for_zoom(cam_zoom: float) -> void:
-	# 非整数 zoom 在 NEAREST + 整数倍上采样下产生不均匀 texel 宽度（视觉上"模糊/抖动"）。
-	# 过渡期或非整数目标值时切 LINEAR → 统一软化，比 NEAREST 不均匀像素更"有意图"；
-	# zoom 收敛到整数后切回 NEAREST，恢复像素清晰感。
-	#
-	# SubViewport.canvas_item_default_texture_filter: 0=NEAREST, 1=LINEAR
-	# CanvasItem.texture_filter:                      1=NEAREST, 2=LINEAR
-	# 直接使用字面量，避免在 GDScript 中解析 Viewport/CanvasItem 枚举的不确定性。
-	var near_integer := absf(cam_zoom - roundf(cam_zoom)) < 0.005
-	var vp_filter  : int = 0 if near_integer else 1   # SubViewport default filter
-	var ci_filter  : int = 1 if near_integer else 2   # CanvasItem texture_filter
-	if _sub_viewport.canvas_item_default_texture_filter != vp_filter:
-		_sub_viewport.canvas_item_default_texture_filter = vp_filter
-	if _display.texture_filter != ci_filter:
-		_display.texture_filter = ci_filter
+	# 鼠标坐标映射所需的左上角，按 effective_scale 计算
+	var actual_size := Vector2(game_size + Vector2i.ONE)
+	_display_origin = _screen_center - actual_size * 0.5 * effective_scale
 
 
 func _input(event: InputEvent) -> void:
@@ -91,11 +82,13 @@ func _input(event: InputEvent) -> void:
 func _transform_input(event: InputEvent) -> InputEvent:
 	if event is InputEventMouse:
 		var mouse := event as InputEventMouse
-		var local: Vector2 = (mouse.position - _display_origin) / float(_current_scale)
+		# 用 DisplaySprite 当前实际缩放（含 zoom）反算游戏坐标
+		var eff_scale := _display.scale.x
+		var local: Vector2 = (mouse.position - _display_origin) / eff_scale
 		var clone := event.duplicate() as InputEventMouse
 		clone.position = local
 		if clone is InputEventMouseMotion:
-			(clone as InputEventMouseMotion).relative = (mouse as InputEventMouseMotion).relative / float(_current_scale)
+			(clone as InputEventMouseMotion).relative = (mouse as InputEventMouseMotion).relative / eff_scale
 		return clone
 	return event
 
