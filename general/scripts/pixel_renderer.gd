@@ -55,24 +55,26 @@ func _process(_delta: float) -> void:
 		_camera = _find_camera_in_subviewport()
 		if _camera == null:
 			return
-	# 显式取整到物理像素：scale=3 时即 1/3 game-px 步进。
-	# 不依赖 project.godot 的 snap_2d_transforms_to_pixel；意图写在代码里。
-	var phys_offset := (_camera.subpixel_offset * float(_current_scale)).round()
+	# 显式取整到物理像素，同时乘以 Camera2D.zoom：
+	# zoom 改变后 1 game pixel = zoom × _current_scale physical pixels，
+	# 若不乘 zoom，高缩放倍率下补偿量是实际所需的 1/zoom，相机会在整数像素间漂移。
+	var cam_zoom := _camera.zoom.x
+	var phys_offset := (_camera.subpixel_offset * float(_current_scale) * cam_zoom).round()
 	_display.position = _screen_center - phys_offset
-	_update_filter_for_zoom(_camera.zoom.x)
+	_update_filter_for_zoom(cam_zoom)
 
 
 func _update_filter_for_zoom(cam_zoom: float) -> void:
 	# 非整数 zoom 在 NEAREST + 整数倍上采样下产生不均匀 texel 宽度（视觉上"模糊/抖动"）。
 	# 过渡期或非整数目标值时切 LINEAR → 统一软化，比 NEAREST 不均匀像素更"有意图"；
 	# zoom 收敛到整数后切回 NEAREST，恢复像素清晰感。
+	#
+	# SubViewport.canvas_item_default_texture_filter: 0=NEAREST, 1=LINEAR
+	# CanvasItem.texture_filter:                      1=NEAREST, 2=LINEAR
+	# 直接使用字面量，避免在 GDScript 中解析 Viewport/CanvasItem 枚举的不确定性。
 	var near_integer := absf(cam_zoom - roundf(cam_zoom)) < 0.005
-	var vp_filter := (Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-			if near_integer
-			else Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR)
-	var ci_filter := (CanvasItem.TEXTURE_FILTER_NEAREST
-			if near_integer
-			else CanvasItem.TEXTURE_FILTER_LINEAR)
+	var vp_filter  : int = 0 if near_integer else 1   # SubViewport default filter
+	var ci_filter  : int = 1 if near_integer else 2   # CanvasItem texture_filter
 	if _sub_viewport.canvas_item_default_texture_filter != vp_filter:
 		_sub_viewport.canvas_item_default_texture_filter = vp_filter
 	if _display.texture_filter != ci_filter:

@@ -113,7 +113,7 @@ CameraZone (Area2D)
   mode = LOCK_TO_CENTER
   bounds_source = CUSTOM_FROM_MARKER
   custom_bounds_size = Vector2(256, 180)  ← 这个房间的边界大小
-  hidden_room_zoom = 1.3                  ← 进入时镜头放大 1.3x（压迫感/聚焦）
+  hidden_room_zoom = 2.0                  ← 进入时镜头放大 2x；整数值才能保持 pixel-perfect
   zone_priority = 10                      ← 高于外层普通区域
   transition_duration = 0.6
   CollisionShape2D   ← 做大一些，提前触发
