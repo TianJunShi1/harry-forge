@@ -38,6 +38,7 @@ tile_map_data = PackedByteArray("AAD//wgAAQAAAAAAAAAAAAgAAQAAAAAAAAABAAgAAQAAAAA
 tile_set = ExtResource("1_qyxhl")
 
 [node name="CameraBounds" parent="." unique_id=524011115 instance=ExtResource("4_hp1sv")]
+transition_duration = 0.6
 
 [node name="CollisionShape2D" parent="CameraBounds" index="0" unique_id=550665942]
 position = Vector2(533, 2)
