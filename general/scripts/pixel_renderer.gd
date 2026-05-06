@@ -59,6 +59,24 @@ func _process(_delta: float) -> void:
 	# 不依赖 project.godot 的 snap_2d_transforms_to_pixel；意图写在代码里。
 	var phys_offset := (_camera.subpixel_offset * float(_current_scale)).round()
 	_display.position = _screen_center - phys_offset
+	_update_filter_for_zoom(_camera.zoom.x)
+
+
+func _update_filter_for_zoom(cam_zoom: float) -> void:
+	# 非整数 zoom 在 NEAREST + 整数倍上采样下产生不均匀 texel 宽度（视觉上"模糊/抖动"）。
+	# 过渡期或非整数目标值时切 LINEAR → 统一软化，比 NEAREST 不均匀像素更"有意图"；
+	# zoom 收敛到整数后切回 NEAREST，恢复像素清晰感。
+	var near_integer := absf(cam_zoom - roundf(cam_zoom)) < 0.005
+	var vp_filter := (Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+			if near_integer
+			else Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR)
+	var ci_filter := (CanvasItem.TEXTURE_FILTER_NEAREST
+			if near_integer
+			else CanvasItem.TEXTURE_FILTER_LINEAR)
+	if _sub_viewport.canvas_item_default_texture_filter != vp_filter:
+		_sub_viewport.canvas_item_default_texture_filter = vp_filter
+	if _display.texture_filter != ci_filter:
+		_display.texture_filter = ci_filter
 
 
 func _input(event: InputEvent) -> void:

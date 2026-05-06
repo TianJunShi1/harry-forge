@@ -66,7 +66,9 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 - **Camera 不属于 Player**。`Camera2D` 放在关卡场景根节点（实例化 `general/game_camera.tscn`）。
 - **Player 不知道 Camera 的存在**，Camera 主动去找 Player（`"player"` 组）。
 - 区域进入/退出由 `CameraZone`（`general/camera_bounds.tscn`）负责通知 Camera。
-- **平滑频率**：Camera 的 `_smoothed_position` 更新跑在 `_physics_process` 内，与 Player `move_and_slide` 同频（60Hz）；`_process` 不再参与位置计算。这样高刷屏上不会出现相机用 display rate 追物理阶梯函数产生的 60Hz 节拍微抖。PixelRenderer 仍在 `_process` 读取 `subpixel_offset` 做屏幕级补偿，offset 在两个物理 tick 之间保持常数。
+- **平滑频率**：Camera 的 `_smoothed_position` 更新跑在 `_physics_process` 内，与 Player `move_and_slide` 同频（60Hz）；这样高刷屏上不会出现相机用 display rate 追物理阶梯函数产生的 60Hz 节拍微抖。PixelRenderer 仍在 `_process` 读取 `subpixel_offset` 做屏幕级补偿，offset 在两个物理 tick 之间保持常数。
+- **Zoom 频率**：`_displayed_zoom` 插值跑在 `_process`（display rate）。Zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑（zoom 没有类似 subpixel_offset 的补偿机制，必须 display rate 更新）。
+- **Zoom 像素清晰度**：非整数 Camera2D.zoom 在 NEAREST + 整数倍上采样下产生不均匀 texel 宽度。PixelRenderer 自动切换：zoom ≈ 整数 → NEAREST（pixel-perfect）；zoom 非整数 → LINEAR（统一软化）。
 
 ### 使用步骤
 
@@ -100,7 +102,7 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 | `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
 | `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
 | `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
-| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 模式生效，1.0=无效果，>1=放大） |
+| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 生效；整数值 NEAREST 完全清晰，非整数值 PixelRenderer 自动切 LINEAR 软化） |
 | `zone_priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
 | `transition_duration` | 过渡时长（秒） |
 

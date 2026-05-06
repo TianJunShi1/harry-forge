@@ -162,9 +162,6 @@ func _physics_process(delta: float) -> void:
 		var t := 1.0 - exp(-follow_smoothing * delta)
 		_smoothed_position = _smoothed_position.lerp(target_pos, t)
 
-	# Zoom 指数平滑
-	_displayed_zoom = _displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
-
 	# 硬边界安全网（target 已被软限过，这里几乎不触发）
 	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
 	# bounds 过渡期间跳过硬限：_displayed_bounds 每帧收缩，clamp 会把相机钉在中间态产生跳变
@@ -175,8 +172,17 @@ func _physics_process(delta: float) -> void:
 	var snapped := _smoothed_position.floor()
 	subpixel_offset = _smoothed_position - snapped
 	global_position = snapped
-	zoom = _displayed_zoom
 
+
+func _process(delta: float) -> void:
+	# Zoom 指数平滑跑在 display rate（_process），消除 60Hz 步进感。
+	# zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
+	if _initialized:
+		_displayed_zoom = _displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
+		# zoom 收敛到目标后 snap，防止无限追逼残差
+		if _displayed_zoom.distance_to(_target_zoom) < 0.005:
+			_displayed_zoom = _target_zoom
+		zoom = _displayed_zoom
 	if draw_debug:
 		queue_redraw()
 
