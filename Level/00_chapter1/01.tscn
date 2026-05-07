@@ -50,7 +50,7 @@ position = Vector2(3, -3)
 mode = 1
 bounds_source = 1
 custom_bounds_size = Vector2(256, 180)
-hidden_room_zoom = 1.3
+hidden_room_zoom = 1.2
 zone_priority = 10
 transition_duration = 1.2
 
