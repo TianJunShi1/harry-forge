@@ -291,6 +291,21 @@ func remove_focus_point(focus_id: int, blend_out: float = 0.5) -> void:
 	_focus_points[focus_id]["fade_speed"] = 1.0 / maxf(blend_out, EPSILON)
 
 
+## 显式指定 follow target（剧情/co-op/boss 镜头切换用）。
+## 调用后会断开 node_added 自动发现监听，外部全权负责 follow_target 生命周期。
+## snap=true 时立刻瞬移到目标位置，false 时让 follow_smoothing 平滑过渡。
+## 传 null 等于"取消跟随"——画面留在当前位置直到下次 assign 或重新进入按组发现路径。
+func assign_follow_target(target: Node2D, snap: bool = false) -> void:
+	follow_target = target
+	# 切到显式来源 → 关掉自动按组发现，避免幽灵监听仍在运行
+	if _player_search_pending:
+		_player_search_pending = false
+		if get_tree().node_added.is_connected(_on_node_added):
+			get_tree().node_added.disconnect(_on_node_added)
+	if is_instance_valid(target) and snap:
+		snap_to_target()
+
+
 ## 立即跳到玩家位置（复活/瞬移用），跳过所有平滑。
 func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):

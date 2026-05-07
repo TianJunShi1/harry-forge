@@ -23,8 +23,8 @@ class_name PixelRenderer extends Node2D
 @onready var _display: Sprite2D = $DisplaySprite
 
 var _camera: GameCamera2D
-# 第一次找不到 GameCamera 后停止每帧重试，load_level 时会重置
-var _camera_search_done: bool = false
+# child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
+var _camera_search_pending: bool = false
 var _current_level: Node
 var _current_scale: int = 1
 var _screen_center: Vector2
@@ -39,6 +39,9 @@ func _ready() -> void:
 	_display.texture = _sub_viewport.get_texture()
 	if level:
 		load_level(level)
+	else:
+		# 没有预设 level，挂监听等外部代码 load_level 或直接 add_child
+		_begin_camera_search()
 	get_tree().root.size_changed.connect(_recalculate_layout)
 	_recalculate_layout()
 
@@ -56,9 +59,10 @@ func load_level(packed: PackedScene) -> Node:
 	unload_level()
 	_current_level = packed.instantiate()
 	_sub_viewport.add_child(_current_level)
-	# 新关卡可能携带新的 GameCamera，下一帧 _process 会重新查找
-	_camera = null
-	_camera_search_done = false
+	# add_child 同步把整棵子树入树，立刻扫一次；扫不到（异步加 camera）就交给 signal 兜底
+	_camera = _find_camera_in_subviewport()
+	if _camera == null:
+		_begin_camera_search()
 	return _current_level
 
 
@@ -68,11 +72,45 @@ func unload_level() -> void:
 		_current_level.queue_free()
 	_current_level = null
 	_camera = null
-	_camera_search_done = false
+	_begin_camera_search()
 
 
 func get_current_level() -> Node:
 	return _current_level
+
+
+# ============================================================================
+# 内部：相机自动发现（signal 驱动，零轮询）
+# ============================================================================
+
+func _begin_camera_search() -> void:
+	if _camera_search_pending or is_instance_valid(_camera):
+		return
+	_camera_search_pending = true
+	# 只听直接子节点入树事件（关卡根节点）；深层 GameCamera 由 _scan_for_camera 递归找
+	_sub_viewport.child_entered_tree.connect(_on_subviewport_child_entered)
+
+
+func _end_camera_search() -> void:
+	if not _camera_search_pending:
+		return
+	_camera_search_pending = false
+	_sub_viewport.child_entered_tree.disconnect(_on_subviewport_child_entered)
+
+
+func _on_subviewport_child_entered(_child: Node) -> void:
+	# child_entered_tree 在子节点 _enter_tree 之后触发，但深层子节点的 _enter_tree
+	# 还在传播；defer 一帧到 idle，等整棵子树都入树并注册到 group 后再扫
+	call_deferred("_scan_for_camera")
+
+
+func _scan_for_camera() -> void:
+	if is_instance_valid(_camera):
+		return
+	var found := _find_camera_in_subviewport()
+	if found != null:
+		_camera = found
+		_end_camera_search()
 
 
 func _recalculate_layout() -> void:
@@ -88,14 +126,10 @@ func _recalculate_layout() -> void:
 
 
 func _process(_delta: float) -> void:
+	# camera 由 signal 驱动赋值（_begin_camera_search → _on_subviewport_child_entered）；
+	# 这里只读，找不到就跳过本帧渲染调整
 	if not is_instance_valid(_camera):
-		if _camera_search_done:
-			return
-		_camera = _find_camera_in_subviewport()
-		if _camera == null:
-			_camera_search_done = true
-			push_warning("PixelRenderer：SubViewport 内找不到 GameCamera2D（'game_camera' 组）；subpixel 补偿和 zoom 不生效，将停止重试。调用 load_level 后会重新查找。")
-			return
+		return
 	# 蔚蓝架构：缩放在外层做。effective_scale = 基础整数 × 显示 zoom。
 	# 整数 zoom 时 effective_scale 仍为整数 → 物理像素完美对齐；
 	# 非整数 zoom 时 effective_scale 非整数 → NEAREST 采样下物理像素宽度不均（3/4 px 交错）
