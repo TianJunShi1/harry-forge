@@ -149,6 +149,28 @@ camera.remove_focus_point(poi.get_instance_id(), 0.5)
 camera.snap_to_target()
 ```
 
+## 关卡切换
+
+`PixelRenderer` 是**唯一**的关卡装载入口；外部代码不应直接向 `SubViewport` add_child。
+
+```gdscript
+# 切换关卡
+pixel_renderer.load_level(load("res://Level/00_chapter1/01.tscn"))
+
+# 卸载当前关卡（黑屏）
+pixel_renderer.unload_level()
+
+# 取当前关卡引用（可为 null）
+var lvl := pixel_renderer.get_current_level()
+```
+
+切换后 PixelRenderer 会重新在新关卡子树里查找 `game_camera` 组里的 GameCamera2D。
+GameCamera 同样用 `node_added` signal 监听 `"player"` 组节点加入树（不再每帧轮询），
+玩家也可以晚于关卡实例化加入。
+
+> **注意**：玩家跨关卡持久化（保留血量、物品等）当前**未实现**。
+> 未来如果需要，建议把 Player 提到 SubViewport 的直接子节点，或引入 SaveManager autoload。
+
 ## 物理层
 
 | 层 | 名称 |
