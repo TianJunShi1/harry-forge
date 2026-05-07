@@ -17,7 +17,9 @@ var is_bouncing: bool = false
 func init() -> void:
 	# 弹跳板触发时由 Player 发 signal，本状态接管切换。
 	# 与 Player 的耦合从"持有具体状态类引用"降为"广播 signal"。
-	player.bounce_requested.connect(_on_bounce_requested)
+	# 守卫：场景重载 / 编辑器热更新若让 init 跑两遍，避免双连接 → 单次弹跳触发两次切换
+	if not player.bounce_requested.is_connected(_on_bounce_requested):
+		player.bounce_requested.connect(_on_bounce_requested)
 
 
 func _on_bounce_requested() -> void:

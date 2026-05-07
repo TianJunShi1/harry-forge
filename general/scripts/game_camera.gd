@@ -373,11 +373,15 @@ func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: flo
 		# 未初始化时跳过过渡，_physics_process 第一帧会直接快照到 lock_center
 		_look_ahead_value = 0.0
 		_facing_target = 0.0
+		# 玩家若按住 S 进入 lock，残留的 look_y 偏移会在退出时第一帧污染目标位置；
+		# 进入 lock 时也清零，确保 lock 中心计算与玩家观察意图无关
+		_look_y_value = 0.0
 	else:
 		# 退出锁定：_smoothed_position 留在当前位置（通常是 lock_center 附近），
 		# follow smoothing 负责将相机平滑地引导回玩家，无需额外 tween
 		_lock_transition_active = false
 		_look_ahead_value = 0.0
+		_look_y_value = 0.0
 
 
 # ============================================================================
