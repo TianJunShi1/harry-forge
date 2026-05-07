@@ -38,8 +38,14 @@ signal bounce_requested
 @onready var state_label: Label = $Label
 
 
-func _ready() -> void:
+func _enter_tree() -> void:
+	# _enter_tree 가 _ready 보다 먼저 실행되므로, 같은 씬에서 로드되는
+	# GameCamera._ready() 가 get_first_node_in_group("player") 를 호출할 때
+	# 이미 그룹에 등록된 상태여야 카메라가 즉시 플레이어를 찾을 수 있다.
 	add_to_group("player")
+
+
+func _ready() -> void:
 	initialize_states()
 
 
