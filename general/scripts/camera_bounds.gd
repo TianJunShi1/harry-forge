@@ -80,6 +80,8 @@ func _ready() -> void:
 	_resolve_camera()
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	if bounds_source == BoundsSource.CUSTOM_FROM_MARKER and bounds_center_marker == null:
+		push_warning("CameraZone '%s'：bounds_source = CUSTOM_FROM_MARKER 但找不到子节点 'BoundsCenter'（Marker2D）。将退化为使用本节点位置。" % name)
 	# 处理玩家在本区域内时被实例化的情况（关卡加载场景）
 	call_deferred("_apply_if_player_already_inside")
 

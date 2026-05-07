@@ -61,11 +61,25 @@ class_name GameCamera2D extends Camera2D
 
 
 # ============================================================================
+# 常量
+# ============================================================================
+
+# 浮点比较 / 时长除零防护通用阈值
+const EPSILON : float = 0.0001
+# focus point 淡出剔除阈值（独立，因为视觉敏感度低，可以更宽松）
+const FOCUS_FADE_OUT_EPSILON : float = 0.001
+
+
+# ============================================================================
 # 运行时状态
 # ============================================================================
 
 var _zone_stack: Array = []
 var _zone_order_counter: int = 0
+# follow_target 失效时是否已挂上 node_added 监听等待玩家加入树
+var _player_search_pending: bool = false
+# bounds 过渡是否还在跑；过渡结束后置 false 避免每帧重算 lerp
+var _bounds_tween_active: bool = false
 
 # 目标状态（来自最高优先级 zone）
 var _target_bounds: Rect2 = Rect2()
@@ -125,15 +139,35 @@ func _ready() -> void:
 		subpixel_offset = _smoothed_position - snapped
 		global_position = snapped
 		_initialized = true
+	else:
+		_begin_player_search()
+
+
+## 等待 "player" 组节点加入场景树。第一次失败后挂 node_added 监听，
+## 替代旧版本每物理帧 get_first_node_in_group 的 O(n) 退化。
+func _begin_player_search() -> void:
+	if _player_search_pending:
+		return
+	_player_search_pending = true
+	get_tree().node_added.connect(_on_node_added)
+
+
+func _on_node_added(node: Node) -> void:
+	if not _player_search_pending:
+		return
+	if node is Node2D and node.is_in_group("player"):
+		follow_target = node
+		_player_search_pending = false
+		get_tree().node_added.disconnect(_on_node_added)
 
 
 func _physics_process(delta: float) -> void:
 	# 跑在 _physics_process 与 Player.move_and_slide 同频（60Hz），消除"渲染帧追物理阶梯函数"
 	# 产生的 60Hz 节拍微抖。指数 lerp 1-exp(-k·delta) 是连续时间常数，频率切换不影响收敛轨迹。
-	# 延迟加载场景时 Player 比 Camera 晚 ready，这里重试自动发现
+	# 玩家失效（被 free / 关卡切换）时挂监听等待重生，不再每帧 O(n) 扫描整棵树
 	if not is_instance_valid(follow_target):
-		follow_target = get_tree().get_first_node_in_group("player") as Node2D
-	if not is_instance_valid(follow_target):
+		follow_target = null
+		_begin_player_search()
 		return
 
 	if not _initialized:
@@ -182,7 +216,7 @@ func _process(delta: float) -> void:
 	# zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
 	if _initialized:
 		var dist := displayed_zoom.distance_to(_target_zoom)
-		if dist < 0.0001:
+		if dist < EPSILON:
 			displayed_zoom = _target_zoom
 		else:
 			# 主驱动：指数平滑（先快后慢）；兜底：最小线性速度，消除指数爬行在终点产生的顿挫感
@@ -226,10 +260,13 @@ func pop_zone(zone_id: int) -> void:
 
 ## 添加临时聚焦点。weight=1.0 时和玩家各占 50%，blend_in 为淡入时长（秒）。
 func add_focus_point(focus_id: int, world_position: Vector2, weight: float = 1.0, blend_in: float = 0.5) -> void:
-	var fade_speed := 1.0 / maxf(blend_in, 0.0001)
+	var fade_speed := 1.0 / maxf(blend_in, EPSILON)
 	if _focus_points.has(focus_id):
+		# 重入时归零 weight_current，让"重新淡入"行为可预测；
+		# 否则同一 focus 反复 add 会累积权重导致镜头瞬间跳到聚焦目标
 		_focus_points[focus_id]["position"] = world_position
 		_focus_points[focus_id]["weight_target"] = weight
+		_focus_points[focus_id]["weight_current"] = 0.0
 		_focus_points[focus_id]["fade_speed"] = fade_speed
 	else:
 		_focus_points[focus_id] = {
@@ -251,7 +288,7 @@ func remove_focus_point(focus_id: int, blend_out: float = 0.5) -> void:
 	if not _focus_points.has(focus_id):
 		return
 	_focus_points[focus_id]["weight_target"] = 0.0
-	_focus_points[focus_id]["fade_speed"] = 1.0 / maxf(blend_out, 0.0001)
+	_focus_points[focus_id]["fade_speed"] = 1.0 / maxf(blend_out, EPSILON)
 
 
 ## 立即跳到玩家位置（复活/瞬移用），跳过所有平滑。
@@ -308,24 +345,31 @@ func _begin_bounds_transition(new_bounds: Rect2, has_bounds: bool, duration: flo
 		# 首次进入有边界区域：直接吸附，避免从 Rect2() 大小拉过来
 		_displayed_bounds = new_bounds
 		_bounds_tween_t = 1.0
+		_bounds_tween_active = false
 	else:
 		_bounds_tween_from = _displayed_bounds
-		_bounds_tween_duration = maxf(duration, 0.0001)
+		_bounds_tween_duration = maxf(duration, EPSILON)
 		_bounds_tween_t = 0.0
+		_bounds_tween_active = true
 	_target_bounds = new_bounds
 	_target_has_bounds = has_bounds
 
 
 func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: float) -> void:
 	_target_lock_to_center = lock_to_center
-	_target_lock_center = center
+	# 锁定中心若超出 bounds（zone 配置问题或 BoundsCenter Marker 摆错），
+	# 先夹回 bounds 内，避免 lock 过渡 smoothstep 把相机插值到房间外
+	if lock_to_center and _target_has_bounds:
+		_target_lock_center = _hard_clamp_to_bounds(center, _target_bounds, _target_zoom)
+	else:
+		_target_lock_center = center
 	if lock_to_center:
 		if _initialized:
 			# 从当前相机位置直接 smoothstep 到锁定中心，不经过 follow smoothing
 			_lock_transition_active = true
 			_lock_transition_from = _smoothed_position
 			_lock_tween_t = 0.0
-			_lock_tween_duration = maxf(duration, 0.0001)
+			_lock_tween_duration = maxf(duration, EPSILON)
 		# 未初始化时跳过过渡，_physics_process 第一帧会直接快照到 lock_center
 		_look_ahead_value = 0.0
 		_facing_target = 0.0
@@ -341,13 +385,16 @@ func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: flo
 # ============================================================================
 
 func _advance_bounds_transition(delta: float) -> void:
-	if _bounds_tween_t < 1.0:
-		_bounds_tween_t = minf(_bounds_tween_t + delta / _bounds_tween_duration, 1.0)
-		var s := _smoothstep01(_bounds_tween_t)
-		_displayed_bounds = Rect2(
-			_bounds_tween_from.position.lerp(_target_bounds.position, s),
-			_bounds_tween_from.size.lerp(_target_bounds.size, s)
-		)
+	if not _bounds_tween_active:
+		return
+	_bounds_tween_t = minf(_bounds_tween_t + delta / _bounds_tween_duration, 1.0)
+	var s := _smoothstep01(_bounds_tween_t)
+	_displayed_bounds = Rect2(
+		_bounds_tween_from.position.lerp(_target_bounds.position, s),
+		_bounds_tween_from.size.lerp(_target_bounds.size, s)
+	)
+	if _bounds_tween_t >= 1.0:
+		_bounds_tween_active = false
 
 
 # ============================================================================
@@ -355,6 +402,10 @@ func _advance_bounds_transition(delta: float) -> void:
 # ============================================================================
 
 func _compute_desired_position(delta: float) -> Vector2:
+	# 冗余防御：_physics_process 入口已经过 is_instance_valid 检查，
+	# 但调用栈深，将来若被复用此处再保一道
+	if not is_instance_valid(follow_target):
+		return _smoothed_position
 	var target_pos: Vector2 = follow_target.global_position
 
 	# 垂直构图偏移：与 look-ahead 正交（一个走 X 一个走 Y），互不干扰；
@@ -383,7 +434,7 @@ func _compute_desired_position(delta: float) -> Vector2:
 		var weighted: Vector2 = target_pos
 		for fp in _focus_points.values():
 			var w: float = fp["weight_current"]
-			if w > 0.0001:
+			if w > EPSILON:
 				weighted += fp["position"] * w
 				total_weight += w
 		target_pos = weighted / total_weight
@@ -418,7 +469,7 @@ func _update_focus_points(delta: float) -> void:
 		var fp: Dictionary = _focus_points[id]
 		var t := 1.0 - exp(-fp["fade_speed"] * delta)
 		fp["weight_current"] = lerpf(fp["weight_current"], fp["weight_target"], t)
-		if fp["weight_target"] <= 0.0 and fp["weight_current"] < 0.001:
+		if fp["weight_target"] <= 0.0 and fp["weight_current"] < FOCUS_FADE_OUT_EPSILON:
 			to_remove.append(id)
 	for id in to_remove:
 		_focus_points.erase(id)
@@ -428,11 +479,13 @@ func _update_focus_points(delta: float) -> void:
 # 内部：边界数学
 # ============================================================================
 
-func _get_camera_half_view(zoom_value: Vector2) -> Vector2:
+func _get_camera_half_view(_zoom_value: Vector2) -> Vector2:
+	# 蔚蓝式架构：Camera2D.zoom 永远 ONE，displayed_zoom 仅影响外层显示，
+	# 不改变 SubViewport 内 Camera 看到的世界范围。
+	# PixelRenderer 给 SubViewport 加了 1px slack 防止边缘瓦片被裁，
+	# 计算边界时减回去得到真实游戏视野（如默认 480×270）。
 	var viewport_size := get_viewport_rect().size
-	if zoom_value.x <= 0.0 or zoom_value.y <= 0.0:
-		return viewport_size * 0.5
-	return Vector2(viewport_size.x / zoom_value.x, viewport_size.y / zoom_value.y) * 0.5
+	return (viewport_size - Vector2.ONE) * 0.5
 
 
 func _soft_clamp_to_bounds(pos: Vector2, bounds: Rect2, zoom_value: Vector2) -> Vector2:
