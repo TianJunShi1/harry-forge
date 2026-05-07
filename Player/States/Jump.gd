@@ -1,18 +1,28 @@
 @icon("res://icon/state.svg")
 class_name PlayerstateJump extends Playerstate
 
-@onready var fall_state: Playerstate = %Fall 
+@onready var fall_state: PlayerstateFall = %Fall
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 # 【修改】删除本地 air_speed，改用 player.air_speed 统一管理
 # 【修改】删除本地 jump_velocity，改用 player.jump_velocity 统一管理
 # 以后二段跳、蓄力跳等状态也可以共同读取 player 的跳跃参数
 
+# 松开跳跃键时的小跳速度衰减系数
+const EARLY_RELEASE_MULTIPLIER : float = 0.5
+
 # 【新增：是否处于弹跳板弹飞状态的标记】
-var is_bouncing: bool = false 
+var is_bouncing: bool = false
 
 #region /// 核心状态生命周期
 func init() -> void:
-	pass
+	# 弹跳板触发时由 Player 发 signal，本状态接管切换。
+	# 与 Player 的耦合从"持有具体状态类引用"降为"广播 signal"。
+	player.bounce_requested.connect(_on_bounce_requested)
+
+
+func _on_bounce_requested() -> void:
+	is_bouncing = true
+	player.call_deferred("change_state", self)
 
 func enter() -> void:
 	# 只要真正进入跳跃状态，立刻消费土狼时间（双保险）
@@ -49,7 +59,7 @@ func physics_process(_delta: float) -> Playerstate:
 	# 【核心修改】如果是被弹跳板弹飞的，禁止触发小跳减速！
 	# 【修改】ui_accept 统一改为 jump
 	if not is_bouncing and Input.is_action_just_released("jump") and player.velocity.y < 0:
-		player.velocity.y *= 0.5 
+		player.velocity.y *= EARLY_RELEASE_MULTIPLIER
 		
 	if player.velocity.y >= 0:
 		return fall_state

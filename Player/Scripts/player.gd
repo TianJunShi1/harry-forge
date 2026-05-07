@@ -9,21 +9,26 @@ var all_states : Array[Playerstate] = []
 #region /// 🏃 Movement & Input
 var direction : Vector2 = Vector2.ZERO
 const INPUT_DEADZONE : float = 0.1
+# request_drop_through 时给 velocity.y 的最小下沉速度，防止脚还卡在平台上不掉
+const DROP_THROUGH_MIN_VELOCITY : float = 30.0
 
-var air_speed : float = 160.0
-var jump_velocity : float = -380.0
+@export var air_speed : float = 160.0
+@export var jump_velocity : float = -380.0
 
-var gravity : float = 900.0
-var fall_gravity_multiplier : float = 1.8
-var max_fall_speed : float = 600.0
+@export var gravity : float = 900.0
+@export var fall_gravity_multiplier : float = 1.8
+@export var max_fall_speed : float = 600.0
 
 var coyote_timer : float = 0.0
-var coyote_duration : float = 0.15
+@export var coyote_duration : float = 0.15
 
 const ONE_WAY_PLATFORM_LAYER : int = 3
 @export var drop_through_duration : float = 0.18
 var drop_through_timer : float = 0.0
 #endregion
+
+## 当玩家被弹跳板抛起时发出。Jump 状态监听此 signal 以避免被普通跳跃逻辑覆盖速度。
+signal bounce_requested
 
 #region /// 🎨 Animation
 @onready var anim : AnimatedSprite2D = $AnimatedSprite2D
@@ -60,7 +65,7 @@ func _physics_process(delta: float) -> void:
 	if drop_through_timer > 0.0:
 		drop_through_timer -= delta
 		if drop_through_timer <= 0.0:
-			set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, true)
+			reset_drop_through()
 
 	if is_on_floor():
 		coyote_timer = coyote_duration
@@ -158,13 +163,21 @@ func request_drop_through() -> void:
 		return
 	set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, false)
 	drop_through_timer = drop_through_duration
-	velocity.y = maxf(velocity.y, 30.0)
+	velocity.y = maxf(velocity.y, DROP_THROUGH_MIN_VELOCITY)
 
 
+## 立刻结束 drop_through：恢复单向平台碰撞、清零 timer。
+## 弹跳、死亡复活、强制传送都应调用本方法，避免遗留 collision_mask 让玩家穿地。
+func reset_drop_through() -> void:
+	if drop_through_timer > 0.0 or not get_collision_mask_value(ONE_WAY_PLATFORM_LAYER):
+		set_collision_mask_value(ONE_WAY_PLATFORM_LAYER, true)
+	drop_through_timer = 0.0
+
+
+## 弹跳板触发；Jump 状态通过 bounce_requested signal 接管状态切换，
+## 避免 Player 反向耦合具体状态类。
 func apply_bounce(force: float) -> void:
+	# 防止 drop_through 期间被弹起后还穿透单向平台
+	reset_drop_through()
 	velocity.y = -force
-	for state in all_states:
-		if state is PlayerstateJump:
-			state.is_bouncing = true
-			call_deferred("change_state", state)
-			return
+	bounce_requested.emit()
