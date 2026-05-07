@@ -181,10 +181,13 @@ func _process(delta: float) -> void:
 	# Zoom 指数平滑跑在 display rate（_process），消除 60Hz 步进感。
 	# zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
 	if _initialized:
-		displayed_zoom = displayed_zoom.lerp(_target_zoom, 1.0 - exp(-zoom_smoothing * delta))
-		# zoom 收敛到目标后 snap，防止无限追逼残差
-		if displayed_zoom.distance_to(_target_zoom) < 0.005:
+		var dist := displayed_zoom.distance_to(_target_zoom)
+		if dist < 0.0001:
 			displayed_zoom = _target_zoom
+		else:
+			# 主驱动：指数平滑（先快后慢）；兜底：最小线性速度，消除指数爬行在终点产生的顿挫感
+			var step := maxf(dist * (1.0 - exp(-zoom_smoothing * delta)), zoom_smoothing * 0.02 * delta)
+			displayed_zoom = displayed_zoom.move_toward(_target_zoom, step)
 		# 关键：不写回 Camera2D.zoom；PixelRenderer 用 DisplaySprite.scale 在外层应用。
 	if draw_debug:
 		queue_redraw()
