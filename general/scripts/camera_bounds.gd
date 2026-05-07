@@ -35,7 +35,9 @@ enum BoundsSource {
 ## 边界来自哪里
 @export var bounds_source: BoundsSource = BoundsSource.AUTO_FROM_COLLISION
 
-## 仅 CUSTOM_FROM_MARKER 模式生效。需要在本节点下放一个 Marker2D 命名为 "BoundsCenter"
+## 仅 CUSTOM_FROM_MARKER 模式生效。需要在本节点下放一个 Marker2D 命名为 "BoundsCenter"。
+## 实际边界尺寸不会小于游戏视口（默认 480×270）；传入更小的值会被自动钳到视口尺寸，
+## 防止 lock 模式下出现"相机半视野 > bounds"的居中歧义。
 @export var custom_bounds_size: Vector2 = Vector2(320, 180)
 
 @export_group("Zoom")
@@ -146,8 +148,10 @@ func _compute_bounds() -> Rect2:
 	match bounds_source:
 		BoundsSource.CUSTOM_FROM_MARKER:
 			var center: Vector2 = bounds_center_marker.global_position if bounds_center_marker else global_position
-			# 边界至少不能比视口还小（防止 lock 模式下出现奇怪的居中）
-			var viewport_size := get_viewport_rect().size
+			# 边界至少不能比游戏视口还小（防止 lock 模式下出现奇怪的居中）。
+			# 减 Vector2.ONE 抵消 PixelRenderer 给 SubViewport 加的 1px slack，与
+			# game_camera.gd:_get_camera_half_view 的算法保持一致
+			var viewport_size := get_viewport_rect().size - Vector2.ONE
 			var final_size := Vector2(
 				maxf(custom_bounds_size.x, viewport_size.x),
 				maxf(custom_bounds_size.y, viewport_size.y)
