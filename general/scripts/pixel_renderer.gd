@@ -23,6 +23,9 @@ class_name PixelRenderer extends Node2D
 @onready var _display: Sprite2D = $DisplaySprite
 
 var _camera: GameCamera2D
+# 第一次找不到 GameCamera 后停止每帧重试，load_level 时会重置
+var _camera_search_done: bool = false
+var _current_level: Node
 var _current_scale: int = 1
 var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
@@ -35,9 +38,41 @@ func _ready() -> void:
 	_sub_viewport.size = game_size + Vector2i.ONE
 	_display.texture = _sub_viewport.get_texture()
 	if level:
-		_sub_viewport.add_child(level.instantiate())
+		load_level(level)
 	get_tree().root.size_changed.connect(_recalculate_layout)
 	_recalculate_layout()
+
+
+# ============================================================================
+# 关卡切换 API
+# ============================================================================
+
+## 卸载当前关卡（若有），实例化并挂载 packed 到 SubViewport。
+## 这是 PixelRenderer 的关卡切换唯一入口；外部不应直接 add_child 到 SubViewport。
+func load_level(packed: PackedScene) -> Node:
+	if packed == null:
+		push_warning("PixelRenderer.load_level：packed 为空，已忽略。")
+		return null
+	unload_level()
+	_current_level = packed.instantiate()
+	_sub_viewport.add_child(_current_level)
+	# 新关卡可能携带新的 GameCamera，下一帧 _process 会重新查找
+	_camera = null
+	_camera_search_done = false
+	return _current_level
+
+
+## 卸载当前关卡（如果存在）。queue_free 在帧末执行，本帧仍可安全访问。
+func unload_level() -> void:
+	if is_instance_valid(_current_level):
+		_current_level.queue_free()
+	_current_level = null
+	_camera = null
+	_camera_search_done = false
+
+
+func get_current_level() -> Node:
+	return _current_level
 
 
 func _recalculate_layout() -> void:
@@ -54,8 +89,12 @@ func _recalculate_layout() -> void:
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(_camera):
+		if _camera_search_done:
+			return
 		_camera = _find_camera_in_subviewport()
 		if _camera == null:
+			_camera_search_done = true
+			push_warning("PixelRenderer：SubViewport 内找不到 GameCamera2D（'game_camera' 组）；subpixel 补偿和 zoom 不生效，将停止重试。调用 load_level 后会重新查找。")
 			return
 	# 蔚蓝架构：缩放在外层做。effective_scale = 基础整数 × 显示 zoom。
 	# 整数 zoom 时 effective_scale 仍为整数 → 物理像素完美对齐；
@@ -82,8 +121,9 @@ func _input(event: InputEvent) -> void:
 func _transform_input(event: InputEvent) -> InputEvent:
 	if event is InputEventMouse:
 		var mouse := event as InputEventMouse
-		# 用 DisplaySprite 当前实际缩放（含 zoom）反算游戏坐标
-		var eff_scale := _display.scale.x
+		# 用 DisplaySprite 当前实际缩放（含 zoom）反算游戏坐标。
+		# maxf 防御：极小窗口下若 _current_scale 跌到非正常值导致 scale 为 0 会除零崩溃
+		var eff_scale := maxf(_display.scale.x, 0.0001)
 		var local: Vector2 = (mouse.position - _display_origin) / eff_scale
 		var clone := event.duplicate() as InputEventMouse
 		clone.position = local
