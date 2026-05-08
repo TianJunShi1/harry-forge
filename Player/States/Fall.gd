@@ -33,9 +33,8 @@ func handle_input(_event: InputEvent) -> Playerstate:
 	# 同时把 ui_accept 统一改为 jump
 	if _event.is_action_pressed("jump"):
 		# 1. 尝试触发土狼时间（按晚了的宽容）
-		# 【修改】触发时立刻消费掉 coyote_timer，防止同一段窗口被空中重复利用
+		# coyote_timer 的消费由 Jump.enter() 单点处理，本处只读取
 		if player.coyote_timer > 0.0:
-			player.coyote_timer = 0.0
 			return jump_state
 			
 		# 2. 不满足土狼跳，说明是在高空下落时按的

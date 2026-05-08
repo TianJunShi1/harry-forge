@@ -3,9 +3,9 @@ class_name PlayerstateIdle extends Playerstate
 
 # --- 节点与状态引用 ---
 @onready var run_state: PlayerstateRun = %Run
-@onready var crouch_state: Playerstate = %Crouch
-@onready var jump_state: Playerstate = %Jump
-@onready var fall_state: Playerstate = %Fall
+@onready var crouch_state: PlayerstateCrouch = %Crouch
+@onready var jump_state: PlayerstateJump = %Jump
+@onready var fall_state: PlayerstateFall = %Fall
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 
 # 地面摩擦力

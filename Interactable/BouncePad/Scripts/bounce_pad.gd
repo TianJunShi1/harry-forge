@@ -1,11 +1,26 @@
-extends Area2D
+class_name BouncePad extends Area2D
 
-# 弹射力度，可以根据不同的物品设置不同的弹力
-@export var bounce_force: float = 500.0 
+@export var bounce_force: float = 500.0
+## 触发后的冷却时间，避免单次重叠在多帧内被 body_entered 重复触发
+@export var cooldown: float = 0.1
+
+var _cooldown_timer: float = 0.0
+
+
+func _ready() -> void:
+	# 防御性 connect：即便 .tscn 的信号连接被意外删掉也能工作
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+
+
+func _process(delta: float) -> void:
+	if _cooldown_timer > 0.0:
+		_cooldown_timer -= delta
+
 
 func _on_body_entered(body: Node2D) -> void:
-	if body.has_method("apply_bounce"):
+	if _cooldown_timer > 0.0:
+		return
+	if body is Player:
+		_cooldown_timer = cooldown
 		body.apply_bounce(bounce_force)
-		
-		# 可选：播放喷射蒸汽的动画或音效
-		# $AnimatedSprite2D.play("bounce")

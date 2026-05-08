@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cmain8dvtpr2w"]
+
+[ext_resource type="PackedScene" uid="uid://bpx5r3ndm7q4e" path="res://general/camera/pixel_renderer.tscn" id="1_renderer"]
+[ext_resource type="PackedScene" uid="uid://n23ibv17xmuk" path="res://Level/00_chapter1/01.tscn" id="2_0xm2m"]
+
+[node name="Main" type="Node2D" unique_id=1850619588]
+
+[node name="PixelRenderer" parent="." unique_id=1741041668 instance=ExtResource("1_renderer")]
+level = ExtResource("2_0xm2m")

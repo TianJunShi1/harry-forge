@@ -7,7 +7,7 @@ class_name PlayerstateCrouch extends Playerstate
 @onready var jump_state: PlayerstateJump = %Jump   # 【修改】类型细化为 PlayerstateJump
 @onready var fall_state: PlayerstateFall = %Fall   # 【修改】类型细化为 PlayerstateFall
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
-@onready var one_way_platform_ray_cast: RayCast2D = $"../../OneWayPlatformRayCast"
+@onready var one_way_platform_ray_cast: RayCast2D = %OneWayPlatformRayCast
 
 # 下蹲时的摩擦力
 var friction: float = 1000.0 
@@ -27,10 +27,13 @@ func exit() -> void:
 
 #region /// 帧更新与输入处理
 func handle_input(_event : InputEvent) -> Playerstate:
-	# 【保留功能】：在平地上蹲伏时，依然可以通过按跳跃键直接起跳
-	# 【修改】ui_accept 统一改为 jump
-	# 保留 player.is_on_floor() 检查，理由同 Idle/Run：防止帧时序问题
+	# Hollow Knight / Dead Cells 风格：S 仅蹲伏，S+Jump 才下穿单向平台
+	# 站在单向平台上按 Jump → drop_through + Fall；站实心地按 Jump → 正常起跳
+	# 这样玩家在单向平台上能短暂蹲伏对位 / 看下方，不会一按 S 就消失
 	if _event.is_action_pressed("jump") and player.is_on_floor():
+		if one_way_platform_ray_cast.is_colliding():
+			player.request_drop_through()
+			return fall_state
 		return jump_state
 	return null
 
@@ -41,21 +44,14 @@ func physics_process(_delta: float) -> Playerstate:
 	# 【新增】离地立即切换到下落状态，防止在某些边缘情况下卡在蹲伏状态
 	if not player.is_on_floor():
 		return fall_state
-		
-	# 脚下检测到单向平台时，请求穿透
-	# 改用 player.request_drop_through()，临时关闭碰撞层
-	# 不依赖平台厚度和 collider 类型，对 TileMap 单向平台也稳定
-	if one_way_platform_ray_cast.is_colliding():
-		player.request_drop_through()
-		return fall_state
-		
+
 	# 如果松开 S 键（或者方向不再向下），返回待机状态
 	# 【修改】改用 INPUT_DEADZONE 做阈值判断，防止手柄漂移导致无法站起
 	if player.direction.y <= player.INPUT_DEADZONE:
 		return idle_state
-		
+
 	# 平地上的摩擦力滑行逻辑（依然保留）
-	player.velocity.x = move_toward(player.velocity.x, 0, friction * _delta)
-	
+	player.velocity.x = move_toward(player.velocity.x, 0.0, friction * _delta)
+
 	return null
 #endregion

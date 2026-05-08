@@ -7,6 +7,10 @@
 export.cfg
 export_credentials.cfg
 
+# Godot editor scene save tempfiles
+*.tscn[0-9]*.tmp
+*.tres[0-9]*.tmp
+
 # Imported translations (automatically generated from CSV files)
 *.translation
 
@@ -14,3 +18,8 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
