@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="4_hp1sv"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="5_cam01"]
 [ext_resource type="PackedScene" uid="uid://bmustsxwdgpm5" path="res://Npc/Npc_sample.tscn" id="6_lw3vo"]
+[ext_resource type="PackedScene" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
+[ext_resource type="PackedScene" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
+[ext_resource type="PackedScene" path="res://Level/01_chapter2/02.tscn" id="9_lvl02"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -75,6 +78,16 @@ position = Vector2(570, 194)
 [node name="NpcSample" parent="." unique_id=1724792271 instance=ExtResource("6_lw3vo")]
 position = Vector2(-393, 0)
 scale = Vector2(-1, 1)
+
+[node name="TransitionToChapter2" parent="." instance=ExtResource("7_trans")]
+position = Vector2(1580, -50)
+target_level = ExtResource("9_lvl02")
+target_spawn_id = &"from_chapter1"
+
+[node name="SpawnFromChapter2" parent="." instance=ExtResource("8_spawn")]
+position = Vector2(1450, 0)
+spawn_id = &"from_chapter2"
+spawn_facing = 1
 
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]
