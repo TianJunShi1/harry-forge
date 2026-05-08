@@ -26,6 +26,7 @@ window/size/mode=2
 folder_colors={
 "res://Interactable/": "orange",
 "res://Level/": "teal",
+"res://Npc/": "purple",
 "res://Player/": "red",
 "res://general/": "yellow",
 "res://icon/": "gray"

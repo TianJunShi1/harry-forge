@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bmustsxwdgpm5"]
+
+[ext_resource type="Texture2D" uid="uid://dn8e2whu38hiv" path="res://Npc/NPC_SAMPLE.png" id="1_c52kn"]
+
+[node name="NpcSample" type="Node2D" unique_id=389903170]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=406258399]
+position = Vector2(0, -18)
+texture = ExtResource("1_c52kn")

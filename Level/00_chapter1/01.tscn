@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://bc5woagptill0" path="res://Interactable/BouncePad/BouncePad.tscn" id="3_qj3k6"]
 [ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="4_hp1sv"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="5_cam01"]
+[ext_resource type="PackedScene" uid="uid://bmustsxwdgpm5" path="res://Npc/Npc_sample.tscn" id="6_lw3vo"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -70,6 +71,10 @@ position = Vector2(1004, 29)
 
 [node name="BouncePad2" parent="." unique_id=416454745 instance=ExtResource("3_qj3k6")]
 position = Vector2(570, 194)
+
+[node name="NpcSample" parent="." unique_id=1724792271 instance=ExtResource("6_lw3vo")]
+position = Vector2(-393, 0)
+scale = Vector2(-1, 1)
 
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]
