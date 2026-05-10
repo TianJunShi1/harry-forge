@@ -15,6 +15,11 @@ run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="uid://cgjxe1chpis5w"
 
+[autoload]
+
+LevelManager="*res://general/scripts/level_manager.gd"
+GameState="*res://general/scripts/game_state.gd"
+
 [display]
 
 window/size/viewport_width=1920
@@ -88,11 +93,6 @@ dash={
 [physics]
 
 3d/physics_engine="Jolt Physics"
-
-[autoload]
-
-LevelManager="*res://general/scripts/level_manager.gd"
-GameState="*res://general/scripts/game_state.gd"
 
 [rendering]
 
