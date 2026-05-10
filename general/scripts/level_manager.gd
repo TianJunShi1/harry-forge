@@ -80,7 +80,12 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 			_apply_spawn(new_player, spawn, flip_h_snapshot)
 			var cam := _find_camera_in(new_level)
 			if cam:
-				cam.snap_to_target()
+				# 显式重新挂接：load_level 同步 add_child 时新 GameCamera._ready 已跑，
+				# 但那时老关卡的 Player 还没 queue_free，相机 follow_target 误指向老 Player；
+				# await process_frame 后老 Player 失效 → snap_to_target 因 is_instance_valid
+				# 失败而 return，相机停在 (0,0) 画面空白。这里把 follow_target 直接换成新 Player
+				# 并 snap，绕开 race。
+				cam.assign_follow_target(new_player, true)
 			# fade-in 期间冻结新玩家输入，避免黑屏时误操作影响出生位置
 			new_player.set_process_unhandled_input(false)
 		else:
