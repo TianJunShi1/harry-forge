@@ -2,8 +2,8 @@
 
 [ext_resource type="PackedScene" uid="uid://dgjrbwlwhdtny" path="res://Player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="2_cam"]
-[ext_resource type="PackedScene" path="res://general/level_transition/spawn_point.tscn" id="3_spawn"]
-[ext_resource type="PackedScene" path="res://general/level_transition/Level_transition.tscn" id="4_trans"]
+[ext_resource type="PackedScene" uid="uid://e5spwnscn0005e" path="res://general/level_transition/spawn_point.tscn" id="3_spawn"]
+[ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="4_trans"]
 [ext_resource type="PackedScene" uid="uid://n23ibv17xmuk" path="res://Level/00_chapter1/01.tscn" id="5_lvl01"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
