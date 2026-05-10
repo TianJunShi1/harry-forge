@@ -7,7 +7,9 @@ class_name LevelTransition extends Area2D
 ##   2. 调整 CollisionShape2D 覆盖触发区域
 ##   3. 在 Inspector 设置 target_level 和 target_spawn_id
 
-@export var target_level: PackedScene
+## 目标关卡路径（如 res://Level/01_chapter2/02.tscn）。
+## 用路径字符串而非 PackedScene，避免两个关卡场景互相引用造成循环加载死锁。
+@export_file("*.tscn") var target_level_path: String = ""
 @export var target_spawn_id: StringName = &"default"
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
@@ -25,7 +27,11 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if LevelManager.is_in_grace_period() and not ignore_grace:
 		return
-	if target_level == null:
-		push_warning("LevelTransition '%s'：target_level 未指定，忽略触发。" % name)
+	if target_level_path.is_empty():
+		push_warning("LevelTransition '%s'：target_level_path 未指定，忽略触发。" % name)
 		return
-	LevelManager.transition_to(target_level, target_spawn_id)
+	var packed: PackedScene = load(target_level_path)
+	if packed == null:
+		push_error("LevelTransition '%s'：无法加载场景 '%s'。" % [name, target_level_path])
+		return
+	LevelManager.transition_to(packed, target_spawn_id)

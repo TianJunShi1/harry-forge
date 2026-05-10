@@ -8,7 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://bmustsxwdgpm5" path="res://Npc/Npc_sample.tscn" id="6_lw3vo"]
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://e5spwnscn0005e" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
-[ext_resource type="PackedScene" uid="uid://f1chap2lvl006f" path="res://Level/01_chapter2/02.tscn" id="9_lvl02"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -81,7 +80,7 @@ scale = Vector2(-1, 1)
 
 [node name="TransitionToChapter2" parent="." instance=ExtResource("7_trans")]
 position = Vector2(1580, -50)
-target_level = ExtResource("9_lvl02")
+target_level_path = "res://Level/01_chapter2/02.tscn"
 target_spawn_id = &"from_chapter1"
 
 [node name="SpawnFromChapter2" parent="." instance=ExtResource("8_spawn")]
