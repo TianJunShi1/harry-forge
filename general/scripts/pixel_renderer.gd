@@ -59,10 +59,14 @@ func load_level(packed: PackedScene) -> Node:
 	unload_level()
 	_current_level = packed.instantiate()
 	_sub_viewport.add_child(_current_level)
-	# add_child 同步把整棵子树入树，立刻扫一次；扫不到（异步加 camera）就交给 signal 兜底
+	# add_child 同步把整棵子树入树，立刻扫一次；扫不到（异步加 camera）就交给 signal 兜底。
+	# 同步找到后必须调 _end_camera_search()：unload_level() 已连接 child_entered_tree，
+	# 若不断开，信号永久挂着，后续每次 SubViewport 增删节点都会触发无效 deferred scan。
 	_camera = _find_camera_in_subviewport()
 	if _camera == null:
 		_begin_camera_search()
+	else:
+		_end_camera_search()
 	return _current_level
 
 

@@ -86,27 +86,31 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 				# 失败而 return，相机停在 (0,0) 画面空白。这里把 follow_target 直接换成新 Player
 				# 并 snap，绕开 race。
 				cam.assign_follow_target(new_player, true)
-			# fade-in 期间冻结新玩家输入，避免黑屏时误操作影响出生位置
+			# fade-in 期间完全冻结新玩家：物理（重力/移动）+ 输入事件均暂停，
+			# 避免黑屏期间玩家滑离出生点或从边缘落坑。
+			new_player.set_physics_process(false)
 			new_player.set_process_unhandled_input(false)
 		else:
 			push_error("LevelManager: 新关卡中找不到 Player 节点，跳过 teleport。")
 	else:
 		push_error("LevelManager: load_level 后 get_current_level() 为空，关卡加载失败。")
 
-	# 进入 grace 期
-	_grace_timer = post_transition_grace
-
 	# Fade in：黑屏 → 游戏画面
 	var fade_in := create_tween()
 	fade_in.tween_property(_fade_rect, "color:a", 0.0, fade_duration)
 	await fade_in.finished
 
-	# 解冻新玩家输入
+	# 解冻新玩家（物理 + 输入同步恢复）
 	if is_instance_valid(new_player):
+		new_player.set_physics_process(true)
 		new_player.set_process_unhandled_input(true)
 
 	transition_finished.emit()
 	_is_transitioning = false
+	# grace period 在 is_transitioning 清零之后才开始计时，
+	# 确保玩家拿到控制权后的 post_transition_grace 秒内触发器不响应，
+	# 防止落在传送门上的 bounce-back。
+	_grace_timer = post_transition_grace
 
 
 func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> void:
