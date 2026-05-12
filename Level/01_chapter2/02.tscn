@@ -1,33 +1,33 @@
-[gd_scene format=3 uid="uid://f1chap2lvl006f"]
+[gd_scene format=3 uid="uid://c22q78nbdwaa6"]
 
 [ext_resource type="PackedScene" uid="uid://dgjrbwlwhdtny" path="res://Player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="2_cam"]
-[ext_resource type="PackedScene" uid="uid://e5spwnscn0005e" path="res://general/level_transition/spawn_point.tscn" id="3_spawn"]
+[ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="3_spawn"]
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="4_trans"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(2000, 32)
 
-[node name="02" type="Node2D"]
+[node name="02" type="Node2D" unique_id=955310257]
 
-[node name="GameCamera" parent="." instance=ExtResource("2_cam")]
+[node name="GameCamera" parent="." unique_id=475025490 instance=ExtResource("2_cam")]
 
-[node name="Floor" type="StaticBody2D" parent="."]
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1044993349]
 position = Vector2(240, 200)
 collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=1964105372]
 shape = SubResource("RectangleShape2D_floor")
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
+[node name="Player" parent="." unique_id=570274555 instance=ExtResource("1_player")]
 position = Vector2(80, 150)
 
-[node name="SpawnFromChapter1" parent="." instance=ExtResource("3_spawn")]
+[node name="SpawnFromChapter1" parent="." unique_id=464551508 instance=ExtResource("3_spawn")]
 position = Vector2(80, 150)
 spawn_id = &"from_chapter1"
 spawn_facing = 2
 
-[node name="TransitionToChapter1" parent="." instance=ExtResource("4_trans")]
+[node name="TransitionToChapter1" parent="." unique_id=2085469441 instance=ExtResource("4_trans")]
 position = Vector2(440, 100)
 target_level_path = "res://Level/00_chapter1/01.tscn"
 target_spawn_id = &"from_chapter2"
