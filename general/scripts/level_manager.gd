@@ -7,7 +7,7 @@ extends Node
 signal transition_started(target_level: PackedScene, target_spawn_id: StringName)
 signal transition_finished
 
-@export var fade_duration: float = 0.3
+@export var fade_duration: float = 0.2
 ## 落地后触发器免疫期（秒），防止瞬间触发反向触发器产生 bounce-back
 @export var post_transition_grace: float = 0.3
 
@@ -114,8 +114,14 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 
 
 func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> void:
+	# load_level 同步入树到 set_physics_process(false) 之间物理 tick 已跑过若干次，
+	# velocity.y 已积累重力值；不重置则解冻后玩家立刻继续坠落。
+	player.velocity = Vector2.ZERO
+
 	if spawn:
-		player.global_position = spawn.global_position
+		# get_resolved_spawn_position 会向下射线找地面并自动贴地；
+		# snap_to_ground=false 或射线无命中时退回 spawn 原始坐标。
+		player.global_position = spawn.get_resolved_spawn_position()
 		match spawn.spawn_facing:
 			1:  # 向左
 				if player.anim:
@@ -129,6 +135,10 @@ func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> v
 	else:
 		if player.anim:
 			player.anim.flip_h = flip_h_fallback
+
+	# 把玩家 snap 到正下方最近地面，使 is_on_floor() 立即为 true，
+	# 状态机首帧直接进 Idle 而非 Fall，避免 fade-in 结束后出现短暂下落动画。
+	player.apply_floor_snap()
 
 
 func _find_player_in_current_level() -> Player:

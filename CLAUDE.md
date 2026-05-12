@@ -239,9 +239,35 @@ if GameState.has_clue(&"clue_torn_letter"):
 
 | 参数 | 说明 |
 |------|------|
-| `target_level` | 目标关卡 PackedScene |
+| `target_level_path` | 目标关卡路径（`res://Level/.../xx.tscn`） |
 | `target_spawn_id` | 目标关卡里 SpawnPoint 的 spawn_id |
 | `ignore_grace` | true=即使在 grace 期内也触发（慎用） |
+
+### SpawnPoint 参数（完整）
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `spawn_id` | `"default"` | 标识符（与 `LevelTransition.target_spawn_id` 对应） |
+| `spawn_facing` | 0 | 0=保留朝向，1=向左，2=向右 |
+| `snap_to_ground` | true | 向下射线找最近地面自动贴地，设计者无需精确对齐像素 |
+| `snap_search_distance` | 256 px | 向下搜索的最大距离 |
+| `player_half_height` | 16 px | 玩家碰撞盒下沿到原点的距离，需与 CollisionShape2D 半高一致 |
+
+### 关卡设计最佳实践
+
+**SpawnPoint 摆放**
+- 默认 `snap_to_ground = true`：可把 SpawnPoint 摆在地面上方任意高度（建议 ≤ 100 px），系统自动射线落地
+- 关闭 snap 时需手工把 y 调整到 `地面顶部 y − player_half_height（默认 16）`
+
+**LevelTransition 摆放**
+- 触发器宽度建议 ≥ 32 px，高度盖住玩家可能经过的整段地形（含跳跃高度）
+- 触发器中心距对应 SpawnPoint 至少 64 px，避免落点与触发器重叠（grace 期 0.3 s 是兜底，设计上不应依赖它）
+- 双向切换：A→B 触发器在 A 的右边，B 的 SpawnPoint 在 B 的左边；反之亦然
+
+**朝向**
+- `spawn_facing = 1`（向左）用于"玩家从右侧进入"
+- `spawn_facing = 2`（向右）用于"玩家从左侧进入"
+- 不确定时填 0（保留上一关朝向快照）
 
 ## 代码约定
 
