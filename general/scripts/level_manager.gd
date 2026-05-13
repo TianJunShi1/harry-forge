@@ -67,7 +67,13 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 
 	# 切换关卡
 	_renderer.load_level(packed)
-	# 等一帧：让新场景所有节点完成 _enter_tree + _ready（包括 Player 加入 "player" 组）
+	# load_level 是同步的，_ready 已完成；立刻冻结新 Player 物理，
+	# 防止下面 await process_frame 期间的物理 tick 把状态从 Idle 切到 Fall
+	# （fall 动画在 fade-in 黑屏期间被 _process 持续播放，恢复瞬间可见）
+	var immediate_player := _find_player_in(_renderer.get_current_level())
+	if immediate_player:
+		immediate_player.set_physics_process(false)
+	# 等一帧：让 Camera._ready、group 注册等完成（Player 物理已冻结，无副作用）
 	await get_tree().process_frame
 
 	var new_level := _renderer.get_current_level()
@@ -78,6 +84,10 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 		if new_player:
 			var spawn := _find_spawn(new_level, spawn_id)
 			_apply_spawn(new_player, spawn, flip_h_snapshot)
+			# velocity 已在 _apply_spawn 中置零；手动调一次 move_and_slide
+			# 强制更新 is_on_floor() 缓存（apply_floor_snap 在非物理 context 下
+			# 不一定可靠），物理恢复后首帧 Idle 不会误判为 Fall。
+			new_player.move_and_slide()
 			var cam := _find_camera_in(new_level)
 			if cam:
 				# 显式重新挂接：load_level 同步 add_child 时新 GameCamera._ready 已跑，
