@@ -13,6 +13,9 @@ class_name SpawnPoint extends Marker2D
 @export var snap_search_distance: float = 256.0
 ## Player 碰撞盒下沿到原点的距离（像素）。与 Player CollisionShape2D 的半高保持一致。
 @export var player_half_height: float = 16.0
+## 向下射线使用的碰撞层掩码（bitmask）。默认 2 = Ground 层；
+## 物理层调整后只改这里，不必再回来改硬编码。
+@export_flags_2d_physics var ground_mask: int = 2
 
 
 func _ready() -> void:
@@ -30,7 +33,7 @@ func get_resolved_spawn_position() -> Vector2:
 	var params := PhysicsRayQueryParameters2D.create(
 		global_position,
 		global_position + Vector2(0, snap_search_distance),
-		2  # Ground 物理层（layer 2）
+		ground_mask
 	)
 	var hit := space.intersect_ray(params)
 	if hit.is_empty():

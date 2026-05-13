@@ -40,6 +40,9 @@ func is_in_grace_period() -> bool:
 func transition_to(packed: PackedScene, spawn_id: StringName = &"") -> void:
 	if _is_transitioning:
 		return
+	if packed == null:
+		push_error("LevelManager.transition_to: packed 为空，已忽略。")
+		return
 	if _renderer == null or _fade_rect == null:
 		push_error("LevelManager.transition_to: register_renderer 尚未调用，无 PixelRenderer 或 FadeRect。")
 		return
@@ -50,9 +53,13 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 	_is_transitioning = true
 	transition_started.emit(packed, spawn_id)
 
-	# 冻结当前关卡的玩家输入（画面变黑期间玩家不应操作）
+	# 冻结当前关卡的玩家：物理 + process + 输入全部停掉，
+	# 防止 fade out 黑屏期间继续移动、掉落或推进状态机。
+	# 旧 Player 之后随关卡 queue_free，不需要恢复。
 	var old_player := _find_player_in_current_level()
 	if old_player:
+		old_player.set_physics_process(false)
+		old_player.set_process(false)
 		old_player.set_process_unhandled_input(false)
 
 	# Fade out：游戏画面 → 黑屏
@@ -96,8 +103,9 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 				# 失败而 return，相机停在 (0,0) 画面空白。这里把 follow_target 直接换成新 Player
 				# 并 snap，绕开 race。
 				cam.assign_follow_target(new_player, true)
-			# fade-in 期间完全冻结新玩家：物理（重力/移动）+ 输入事件均暂停，
-			# 避免黑屏期间玩家滑离出生点或从边缘落坑。
+			# fade-in 期间完全冻结新玩家：物理（重力/移动）+ process（状态机推进 / 动画切换）
+			# + 输入事件均暂停，避免黑屏期间玩家滑离出生点、坠落、或推进 fall 动画序列。
+			new_player.set_process(false)
 			new_player.set_physics_process(false)
 			new_player.set_process_unhandled_input(false)
 		else:
@@ -110,17 +118,21 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 	fade_in.tween_property(_fade_rect, "color:a", 0.0, fade_duration)
 	await fade_in.finished
 
-	# 解冻新玩家（物理 + 输入同步恢复）
+	# 解冻新玩家：恢复顺序 process → physics → input，
+	# 状态机就绪后物理才开始处理，避免首帧出现状态/物理不同步。
 	if is_instance_valid(new_player):
+		new_player.set_process(true)
 		new_player.set_physics_process(true)
 		new_player.set_process_unhandled_input(true)
 
-	transition_finished.emit()
+	# 先把内部状态置为"切换完成"，再 emit 信号——监听者收到时
+	# is_transitioning() == false、grace 期已开始计时，可立刻做下一步动作。
 	_is_transitioning = false
 	# grace period 在 is_transitioning 清零之后才开始计时，
 	# 确保玩家拿到控制权后的 post_transition_grace 秒内触发器不响应，
 	# 防止落在传送门上的 bounce-back。
 	_grace_timer = post_transition_grace
+	transition_finished.emit()
 
 
 func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> void:
@@ -159,6 +171,8 @@ func _find_player_in_current_level() -> Player:
 
 
 func _find_player_in(root: Node) -> Player:
+	if not is_instance_valid(root):
+		return null
 	var stack: Array[Node] = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
@@ -170,6 +184,9 @@ func _find_player_in(root: Node) -> Player:
 
 
 func _find_spawn(root: Node, spawn_id: StringName) -> SpawnPoint:
+	if not is_instance_valid(root):
+		push_warning("LevelManager._find_spawn: root 无效，返回 null。")
+		return null
 	var first: SpawnPoint = null
 	var stack: Array[Node] = [root]
 	while not stack.is_empty():
@@ -189,6 +206,8 @@ func _find_spawn(root: Node, spawn_id: StringName) -> SpawnPoint:
 
 
 func _find_camera_in(root: Node) -> GameCamera2D:
+	if not is_instance_valid(root):
+		return null
 	var stack: Array[Node] = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()

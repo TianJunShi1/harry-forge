@@ -11,7 +11,7 @@ class_name CameraZone extends Area2D
 ## 三种典型用法：
 ##   • 普通房间：mode = FOLLOW，bounds_source = AUTO_FROM_COLLISION
 ##   • 隐藏房间：mode = LOCK_TO_CENTER，bounds_source = CUSTOM_FROM_MARKER（提前触发）
-##   • Boss 战 / 大场景：zoom_override = Vector2(0.7, 0.7)（看到更多）
+##   • Boss 战 / 聚焦房间：hidden_room_zoom > 1（外层显示放大，不改变 Camera 世界视野）
 
 enum FollowMode {
 	FOLLOW,           # 摄像机跟随玩家（典型房间）

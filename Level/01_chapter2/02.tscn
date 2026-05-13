@@ -5,9 +5,13 @@
 [ext_resource type="TileSet" uid="uid://ttxdyeaie8lc" path="res://Level/tileset/Test_Block.tres" id="2_gm1fm"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="3_spawn"]
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="4_trans"]
+[ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="5_camb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(2000, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_camb02"]
+size = Vector2(2000, 400)
 
 [node name="02" type="Node2D" unique_id=955310257]
 
@@ -36,3 +40,11 @@ spawn_facing = 2
 position = Vector2(-48, 87)
 target_level_path = "res://Level/00_chapter1/01.tscn"
 target_spawn_id = &"from_chapter2"
+
+[node name="CameraBounds" parent="." unique_id=1325847261 instance=ExtResource("5_camb")]
+position = Vector2(240, 100)
+
+[node name="CollisionShape2D" parent="CameraBounds" index="0" unique_id=550665942]
+shape = SubResource("RectangleShape2D_camb02")
+
+[editable path="CameraBounds"]

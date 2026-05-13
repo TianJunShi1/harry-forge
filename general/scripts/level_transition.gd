@@ -16,6 +16,11 @@ class_name LevelTransition extends Area2D
 
 
 func _ready() -> void:
+	# 启动期就预检路径配置错误，避免玩家走到才报错；不阻止运行，仅给警告。
+	if target_level_path.is_empty():
+		push_warning("LevelTransition '%s'：target_level_path 未设置。" % name)
+	elif not ResourceLoader.exists(target_level_path):
+		push_warning("LevelTransition '%s'：路径不存在 '%s'。" % [name, target_level_path])
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 
