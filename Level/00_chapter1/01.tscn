@@ -30,7 +30,7 @@ vertical_offset = -64.0
 look_y_engage_speed = 4.5
 look_y_return_speed = 10.0
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1613154371]
+[node name="Test_bg" type="Sprite2D" parent="." unique_id=1613154371]
 position = Vector2(531.99994, 0)
 rotation = -1.5707964
 scale = Vector2(3.63, 11.04)
@@ -66,7 +66,7 @@ debug_color = Color(0.6083317, 0.36382565, 1, 0.41960785)
 position = Vector2(-271, -74)
 
 [node name="Player" parent="." unique_id=330197014 instance=ExtResource("2_6rgpo")]
-position = Vector2(1265, 5)
+position = Vector2(1265, -32)
 
 [node name="BouncePad" parent="." unique_id=1258038184 instance=ExtResource("3_qj3k6")]
 position = Vector2(1004, 29)
@@ -75,16 +75,17 @@ position = Vector2(1004, 29)
 position = Vector2(570, 194)
 
 [node name="NpcSample" parent="." unique_id=1724792271 instance=ExtResource("6_lw3vo")]
+visible = false
 position = Vector2(-393, 0)
 scale = Vector2(-1, 1)
 
 [node name="TransitionToChapter2" parent="." unique_id=1019304954 instance=ExtResource("7_trans")]
 position = Vector2(1561, -53)
-target_level_path = "res://Level/01_chapter2/02.tscn"
+target_level_path = "uid://c22q78nbdwaa6"
 target_spawn_id = &"from_chapter1"
 
 [node name="SpawnFromChapter2" parent="." unique_id=1557364962 instance=ExtResource("8_spawn")]
-position = Vector2(1450, -80)
+position = Vector2(1533, -66)
 spawn_id = &"from_chapter2"
 spawn_facing = 1
 
