@@ -1,6 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://bpx5r3ndm7q4e"]
+[gd_scene load_steps=4 format=3 uid="uid://bpx5r3ndm7q4e"]
 
 [ext_resource type="Script" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
+[ext_resource type="Shader" path="res://general/shaders/screen_effects.gdshader" id="2_fx"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fx"]
+shader = ExtResource("2_fx")
+shader_parameter/grain_amount = 0.035
+shader_parameter/grain_speed = 2.0
+shader_parameter/vignette_strength = 2.8
 
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
@@ -13,7 +20,13 @@ snap_2d_transforms_to_pixel = true
 snap_2d_vertices_to_pixel = true
 default_canvas_item_texture_filter = 0
 
+[node name="GlobalEffects" type="Node2D" parent="SubViewport"]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects"]
+color = Color(0.18, 0.14, 0.22, 1)
+
 [node name="DisplaySprite" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_fx")
 texture_filter = 1
 position = Vector2(720, 405)
 scale = Vector2(3, 3)
