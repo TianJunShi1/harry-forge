@@ -20,6 +20,13 @@ class_name GameCamera2D extends Camera2D
 @export var follow_target: Node2D
 ## 跟随平滑度，值越大反应越快（典型范围 2~8）
 @export_range(0.1, 20.0, 0.1) var follow_smoothing: float = 3.0
+## 玩家下落时 y 轴的"追赶"平滑度（仅在 velocity.y > 阈值时生效，沿正常 follow_smoothing 线性过渡到此值，
+## 解决跳起来后高速坠落相机跟不上的问题；不影响上升 / 水平 / 静止时的手感）
+@export_range(0.1, 30.0, 0.1) var fall_catch_up_smoothing: float = 9.0
+## 启动 fall catch-up 的下落速度阈值（像素/秒）。velocity.y 超过此值开始混入 fall_catch_up_smoothing
+@export_range(0.0, 600.0, 1.0) var fall_catch_up_velocity_threshold: float = 120.0
+## 完全切换到 fall_catch_up_smoothing 所需的"超出阈值"速度跨度（像素/秒），用于线性过渡避免突变
+@export_range(1.0, 800.0, 1.0) var fall_catch_up_ramp: float = 200.0
 
 @export_group("Look Ahead")
 ## 是否启用前视偏移
@@ -197,7 +204,14 @@ func _physics_process(delta: float) -> void:
 		# exponential lerp 会自然地把相机拉回玩家，不需要额外 tween
 		var target_pos := _compute_desired_position(delta)
 		var t := 1.0 - exp(-follow_smoothing * delta)
-		_smoothed_position = _smoothed_position.lerp(target_pos, t)
+		# 下落追赶：仅当玩家正向下高速运动时，单独提升 y 轴 smoothing；
+		# 阈值内或上升时退化为 follow_smoothing，水平 / 静止 / 跳起手感完全不变
+		var smoothing_y := _resolve_fall_catch_up_smoothing()
+		var ty := t if smoothing_y == follow_smoothing else 1.0 - exp(-smoothing_y * delta)
+		_smoothed_position = Vector2(
+			lerpf(_smoothed_position.x, target_pos.x, t),
+			lerpf(_smoothed_position.y, target_pos.y, ty)
+		)
 
 	# 硬边界安全网（target 已被软限过，这里几乎不触发）
 	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
@@ -463,6 +477,20 @@ func _compute_desired_position(delta: float) -> Vector2:
 		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, displayed_zoom)
 
 	return target_pos
+
+
+## 根据玩家下落速度返回 y 轴 follow smoothing：
+##   • velocity.y ≤ threshold（包括上升 / 水平 / 缓慢下落）：返回 follow_smoothing，手感不变
+##   • velocity.y ≥ threshold + ramp（高速坠落）：返回 fall_catch_up_smoothing，相机紧追
+##   • 之间线性过渡，避免突变
+func _resolve_fall_catch_up_smoothing() -> float:
+	if not is_instance_valid(follow_target) or not ("velocity" in follow_target):
+		return follow_smoothing
+	var vy: float = follow_target.velocity.y
+	if vy <= fall_catch_up_velocity_threshold:
+		return follow_smoothing
+	var ramp := clampf((vy - fall_catch_up_velocity_threshold) / maxf(fall_catch_up_ramp, EPSILON), 0.0, 1.0)
+	return lerpf(follow_smoothing, fall_catch_up_smoothing, ramp)
 
 
 func _read_look_y_intent() -> float:
