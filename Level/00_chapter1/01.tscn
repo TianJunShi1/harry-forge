@@ -26,11 +26,6 @@ size = Vector2(323.5, 203)
 [node name="01" type="Node2D" unique_id=159589538]
 
 [node name="GameCamera" parent="." unique_id=701613553 instance=ExtResource("5_cam01")]
-fall_catch_up_smoothing = 10.0
-fall_catch_up_ramp = 180.0
-vertical_offset = -64.0
-look_y_engage_speed = 4.5
-look_y_return_speed = 10.0
 
 [node name="Test_bg" type="Sprite2D" parent="." unique_id=1613154371]
 position = Vector2(531.99994, 0)
