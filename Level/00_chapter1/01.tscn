@@ -82,7 +82,7 @@ target_level_path = "uid://c22q78nbdwaa6"
 target_spawn_id = &"from_chapter1"
 
 [node name="SpawnFromChapter2" parent="." unique_id=1557364962 instance=ExtResource("8_spawn")]
-position = Vector2(1533, -66)
+position = Vector2(1533, -42)
 spawn_id = &"from_chapter2"
 spawn_facing = 1
 
