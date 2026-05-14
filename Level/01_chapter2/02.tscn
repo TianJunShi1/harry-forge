@@ -29,7 +29,7 @@ collision_layer = 2
 shape = SubResource("RectangleShape2D_floor")
 
 [node name="Player" parent="." unique_id=570274555 instance=ExtResource("1_player")]
-position = Vector2(80, 150)
+position = Vector2(-9, 160)
 
 [node name="SpawnFromChapter1" parent="." unique_id=464551508 instance=ExtResource("3_spawn")]
 position = Vector2(80, 150)
