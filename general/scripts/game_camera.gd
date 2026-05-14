@@ -134,7 +134,7 @@ func _ready() -> void:
 	if follow_target == null:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
-		_smoothed_position = follow_target.global_position
+		_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
 		var snapped := _smoothed_position.floor()
 		subpixel_offset = _smoothed_position - snapped
 		global_position = snapped
@@ -172,7 +172,7 @@ func _physics_process(delta: float) -> void:
 
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
-		_smoothed_position = _target_lock_center if _target_lock_to_center else follow_target.global_position
+		_smoothed_position = _target_lock_center if _target_lock_to_center else (follow_target.global_position + Vector2(0, vertical_offset))
 		var snapped := _smoothed_position.floor()
 		subpixel_offset = _smoothed_position - snapped
 		global_position = snapped
@@ -310,7 +310,7 @@ func assign_follow_target(target: Node2D, snap: bool = false) -> void:
 func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
-	_smoothed_position = follow_target.global_position
+	_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
 	var snapped := _smoothed_position.floor()
 	subpixel_offset = _smoothed_position - snapped
 	global_position = snapped
