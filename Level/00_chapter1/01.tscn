@@ -86,5 +86,10 @@ position = Vector2(1533, -42)
 spawn_id = &"from_chapter2"
 spawn_facing = 1
 
+[node name="TransitionToChapter3" parent="." unique_id=458547490 instance=ExtResource("7_trans")]
+position = Vector2(1561, 241)
+target_level_path = "uid://c22q78nbdwaa6"
+target_spawn_id = &"from_chapter1_1"
+
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]

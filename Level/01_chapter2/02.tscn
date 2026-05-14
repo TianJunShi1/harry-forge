@@ -26,6 +26,11 @@ position = Vector2(-29, 150)
 spawn_id = &"from_chapter1"
 spawn_facing = 2
 
+[node name="SpawnFromChapter2" parent="." unique_id=700900159 instance=ExtResource("3_spawn")]
+position = Vector2(-29, 534)
+spawn_id = &"from_chapter1_1"
+spawn_facing = 2
+
 [node name="TransitionToChapter1" parent="." unique_id=2085469441 instance=ExtResource("4_trans")]
 position = Vector2(-65, 87)
 target_level_path = "res://Level/00_chapter1/01.tscn"
