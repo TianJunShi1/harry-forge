@@ -11,8 +11,16 @@ class_name SpawnPoint extends Marker2D
 @export var snap_to_ground: bool = true
 ## 向下搜索的最大距离（像素）。超出此距离不调整位置。
 @export var snap_search_distance: float = 256.0
-## Player 碰撞盒下沿到原点的距离（像素）。与 Player CollisionShape2D 的半高保持一致。
-@export var player_half_height: float = 16.0
+## Player 原点到碰撞盒下沿的有符号距离（像素，沿 +y 方向）。
+##   • 正值 = 原点在脚的上方（典型"原点在身体中心"约定）
+##   • 0    = 原点恰在脚底
+##   • 负值 = 原点在脚的下方（本游戏当前 Player 配置：CollisionShape2D
+##           position=(0,-15)，CapsuleShape 半径 10 → 碰撞底在本地 y=-5；
+##           原点比脚低 5 px，所以应填 -5）
+## 与 Player CollisionShape2D 几何保持一致，否则 snap_to_ground 后会
+## 出现微小落差，第一物理帧 Idle 误判 is_on_floor=false 切到 Fall，
+## 产生可见坠落动画。
+@export var player_half_height: float = -5.0
 ## 向下射线使用的碰撞层掩码（bitmask）。默认 2 = Ground 层；
 ## 物理层调整后只改这里，不必再回来改硬编码。
 @export_flags_2d_physics var ground_mask: int = 2
