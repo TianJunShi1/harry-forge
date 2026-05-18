@@ -6,12 +6,11 @@ class_name PixelRenderer extends Node2D
 ##   1. SubViewport 内部永远 1:1 渲染（GameCamera2D.zoom 恒为 ONE），
 ##      内层 Camera2D 把 global_position floor 到整数像素，确保 SubViewport
 ##      输出绝对 pixel-perfect——无亚像素采样错位、无 shimmer
-##   2. DisplaySprite 在外层做缩放：scale = _current_scale × camera.displayed_zoom
-##      整数 zoom（2.0/3.0）→ 物理像素完美整数倍；非整数 zoom（1.3 等）→
-##      NEAREST 采样下物理像素宽度不均（有 3px 有 4px）但每个像素绝对锐利
-##      这就是 Celeste 等顶级像素游戏的"sharp non-integer zoom"做法
+##   2. DisplaySprite 在外层做缩放：effective_scale = round(_current_scale × zoom)
+##      effective_scale 始终为整数物理倍数，任意 zoom 值（1.2/1.4 等）都 pixel-perfect。
+##      zoom 过渡在整数边界处阶梯跳变而非连续，是像素游戏的惯常行为。
 ##   3. 每帧读 GameCamera2D.subpixel_offset（游戏像素残差），按
-##      `-subpixel_offset × _current_scale × zoom_factor` 平移 DisplaySprite，
+##      `-subpixel_offset × effective_scale` 平移 DisplaySprite，
 ##      恢复亚像素级平滑移动
 ##   4. 窗口尺寸变化时自动重算最大整数基础缩放倍数（floor(window/game)），
 ##      画面始终居中，未覆盖的区域为黑边
@@ -134,12 +133,11 @@ func _process(_delta: float) -> void:
 	# 这里只读，找不到就跳过本帧渲染调整
 	if not is_instance_valid(_camera):
 		return
-	# 蔚蓝架构：缩放在外层做。effective_scale = 基础整数 × 显示 zoom。
-	# 整数 zoom 时 effective_scale 仍为整数 → 物理像素完美对齐；
-	# 非整数 zoom 时 effective_scale 非整数 → NEAREST 采样下物理像素宽度不均（3/4 px 交错）
-	# 但每个像素仍绝对锐利（无 LINEAR 羽化）。
+	# 蔚蓝架构：缩放在外层做。effective_scale 取 round 后始终为整数物理倍数，
+	# 任意 zoom 意图值（1.2/1.4 等）都 pixel-perfect，无物理像素宽度不均问题。
+	# maxf(1.0, ...) 防止极小 zoom 时 round 结果为 0 导致 DisplaySprite 消失。
 	var zoom_factor := _camera.displayed_zoom.x
-	var effective_scale := float(_current_scale) * zoom_factor
+	var effective_scale := maxf(1.0, roundf(float(_current_scale) * zoom_factor))
 	_display.scale = Vector2(effective_scale, effective_scale)
 	# subpixel 补偿：1 game pixel = effective_scale physical pixels，残差按此换算
 	var phys_offset := (_camera.subpixel_offset * effective_scale).round()
