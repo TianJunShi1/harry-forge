@@ -80,7 +80,9 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 	var immediate_player := _find_player_in(_renderer.get_current_level())
 	if immediate_player:
 		immediate_player.set_physics_process(false)
-	# 等一帧：让 Camera._ready、group 注册等完成（Player 物理已冻结，无副作用）
+		immediate_player.set_process(false)
+		immediate_player.set_process_unhandled_input(false)
+	# 等一帧：让 Camera._ready、group 注册等完成（Player 已完整冻结，无副作用）
 	await get_tree().process_frame
 
 	var new_level := _renderer.get_current_level()
