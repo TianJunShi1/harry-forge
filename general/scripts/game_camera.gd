@@ -495,12 +495,18 @@ func _compute_desired_position(delta: float) -> Vector2:
 		if dead_zone_height > 0.0:
 			var half_h := dead_zone_height * 0.5
 			var dy := target_pos.y - _smoothed_position.y
-			if dy > half_h:
-				dead_zone_target.y = target_pos.y - half_h
-			elif dy < -half_h:
-				dead_zone_target.y = target_pos.y + half_h
-			else:
-				dead_zone_target.y = _smoothed_position.y
+			# 竖向速度超阈值时（跳跃/快速下落）绕过 Y 死区：
+			# 死区期间相机向上漂移，落地后玩家回到原点却仍在死区内，
+			# 导致相机永久卡在高处；绕过后由 fall_catch_up_smoothing 正常接管。
+			var vy_large := "velocity" in follow_target and \
+					absf(follow_target.velocity.y) >= fall_catch_up_velocity_threshold
+			if not vy_large:
+				if dy > half_h:
+					dead_zone_target.y = target_pos.y - half_h
+				elif dy < -half_h:
+					dead_zone_target.y = target_pos.y + half_h
+				else:
+					dead_zone_target.y = _smoothed_position.y
 		target_pos = dead_zone_target
 
 	# 软边界减速
