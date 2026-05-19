@@ -9,13 +9,6 @@
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
 
-[sub_resource type="Environment" id="Environment_01"]
-background_mode = 5
-adjustment_enabled = true
-adjustment_brightness = 1.2
-adjustment_contrast = 1.05
-adjustment_saturation = 1.0
-
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
 
@@ -42,9 +35,6 @@ fill_from = Vector2(0.5, 0.47863248)
 fill_to = Vector2(0.8162393, 0.15384616)
 
 [node name="01" type="Node2D" unique_id=159589538]
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=900000001]
-environment = SubResource("Environment_01")
 
 [node name="GameCamera" parent="." unique_id=701613553 instance=ExtResource("5_cam01")]
 

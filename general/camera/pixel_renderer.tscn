@@ -6,12 +6,17 @@
 code = "shader_type canvas_item;
 
 uniform float vignette_strength : hint_range(0.0, 6.0) = 1.5;
+uniform float brightness : hint_range(0.5, 2.0) = 1.0;
+uniform float contrast : hint_range(0.5, 2.0) = 1.0;
 
 void fragment() {
 	vec4 col = texture(TEXTURE, UV);
+	col.rgb *= brightness;
+	col.rgb = (col.rgb - 0.5) * contrast + 0.5;
 	vec2 c = UV - vec2(0.5);
 	float vignette = 1.0 - dot(c, c) * vignette_strength;
 	col.rgb *= clamp(vignette, 0.0, 1.0);
+	col.rgb = clamp(col.rgb, 0.0, 1.0);
 	COLOR = col;
 }
 "
@@ -19,6 +24,8 @@ void fragment() {
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_fx"]
 shader = SubResource("Shader_fx")
 shader_parameter/vignette_strength = 1.5
+shader_parameter/brightness = 1.2
+shader_parameter/contrast = 1.05
 
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")

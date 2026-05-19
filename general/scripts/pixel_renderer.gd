@@ -28,8 +28,6 @@ class_name PixelRenderer extends Node2D
 @onready var _display: Sprite2D = $DisplaySprite
 @onready var _canvas_modulate: CanvasModulate = $SubViewport/GlobalEffects/CanvasModulate
 
-var _world_env: WorldEnvironment
-
 var _camera: GameCamera2D
 # child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
 var _camera_search_pending: bool = false
@@ -57,11 +55,10 @@ func _ready() -> void:
 
 func _apply_atmosphere_exports() -> void:
 	_canvas_modulate.color = atmosphere_color
-	if is_instance_valid(_world_env):
-		var env := _world_env.environment
-		env.adjustment_brightness = brightness
-		env.adjustment_contrast = contrast
-	(_display.material as ShaderMaterial).set_shader_parameter("vignette_strength", vignette)
+	var mat := _display.material as ShaderMaterial
+	mat.set_shader_parameter("brightness", brightness)
+	mat.set_shader_parameter("contrast", contrast)
+	mat.set_shader_parameter("vignette_strength", vignette)
 
 
 # ============================================================================
@@ -85,7 +82,6 @@ func load_level(packed: PackedScene) -> Node:
 		_begin_camera_search()
 	else:
 		_end_camera_search()
-	_world_env = _find_world_env_in_level()
 	return _current_level
 
 
@@ -95,7 +91,6 @@ func unload_level() -> void:
 		_current_level.queue_free()
 	_current_level = null
 	_camera = null
-	_world_env = null
 	_begin_camera_search()
 
 
@@ -193,19 +188,6 @@ func _transform_input(event: InputEvent) -> InputEvent:
 	return event
 
 
-func _find_world_env_in_level() -> WorldEnvironment:
-	if not is_instance_valid(_current_level):
-		return null
-	var stack: Array = [_current_level]
-	while not stack.is_empty():
-		var node: Node = stack.pop_back()
-		if node is WorldEnvironment:
-			return node
-		for child in node.get_children():
-			stack.append(child)
-	return null
-
-
 func _find_camera_in_subviewport() -> GameCamera2D:
 	# 遍历 SubViewport 子树查找 game_camera 组成员
 	var stack: Array = [_sub_viewport]
@@ -249,23 +231,27 @@ func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
 
 ## 设置全局亮度（1.0=默认，>1 更亮，<1 更暗）。duration > 0 时平滑过渡。
 func set_brightness(value: float, duration: float = 0.0) -> void:
-	if not is_instance_valid(_world_env):
-		return
-	var env := _world_env.environment
+	var mat := _display.material as ShaderMaterial
 	if duration <= 0.0:
-		env.adjustment_brightness = value
+		mat.set_shader_parameter("brightness", value)
 		return
+	var from: float = mat.get_shader_parameter("brightness")
 	var tw := create_tween()
-	tw.tween_property(env, "adjustment_brightness", value, duration)
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("brightness", v),
+		from, value, duration
+	)
 
 
 ## 设置全局对比度（1.0=默认，>1 更强烈）。duration > 0 时平滑过渡。
 func set_contrast(value: float, duration: float = 0.0) -> void:
-	if not is_instance_valid(_world_env):
-		return
-	var env := _world_env.environment
+	var mat := _display.material as ShaderMaterial
 	if duration <= 0.0:
-		env.adjustment_contrast = value
+		mat.set_shader_parameter("contrast", value)
 		return
+	var from: float = mat.get_shader_parameter("contrast")
 	var tw := create_tween()
-	tw.tween_property(env, "adjustment_contrast", value, duration)
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("contrast", v),
+		from, value, duration
+	)
