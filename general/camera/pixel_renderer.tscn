@@ -1,6 +1,31 @@
-[gd_scene load_steps=2 format=3 uid="uid://bpx5r3ndm7q4e"]
+[gd_scene load_steps=4 format=3 uid="uid://bpx5r3ndm7q4e"]
 
 [ext_resource type="Script" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
+
+[sub_resource type="Shader" id="Shader_fx"]
+code = "shader_type canvas_item;
+
+uniform float brightness : hint_range(0.5, 2.0) = 1.0;
+uniform float contrast : hint_range(0.5, 2.0) = 1.0;
+uniform float vignette_strength : hint_range(0.0, 6.0) = 1.5;
+
+void fragment() {
+	vec4 col = texture(TEXTURE, UV);
+	col.rgb *= brightness;
+	col.rgb = (col.rgb - 0.5) * contrast + 0.5;
+	vec2 c = UV - vec2(0.5);
+	float vignette = 1.0 - dot(c, c) * vignette_strength;
+	col.rgb *= clamp(vignette, 0.0, 1.0);
+	col.rgb = clamp(col.rgb, 0.0, 1.0);
+	COLOR = col;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fx"]
+shader = SubResource("Shader_fx")
+shader_parameter/brightness = 1.2
+shader_parameter/contrast = 1.05
+shader_parameter/vignette_strength = 1.5
 
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
@@ -13,7 +38,13 @@ snap_2d_transforms_to_pixel = true
 snap_2d_vertices_to_pixel = true
 default_canvas_item_texture_filter = 0
 
+[node name="GlobalEffects" type="Node2D" parent="SubViewport"]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects"]
+color = Color(1, 1, 1, 1)
+
 [node name="DisplaySprite" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_fx")
 texture_filter = 1
 position = Vector2(720, 405)
 scale = Vector2(3, 3)
