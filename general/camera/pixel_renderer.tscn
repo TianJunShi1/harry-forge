@@ -23,8 +23,8 @@ void fragment() {
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_fx"]
 shader = SubResource("Shader_fx")
-shader_parameter/vignette_strength = 1.5
-shader_parameter/brightness = 1.2
+shader_parameter/vignette_strength = 0.5
+shader_parameter/brightness = 1.5
 shader_parameter/contrast = 1.05
 
 [node name="PixelRenderer" type="Node2D"]

@@ -20,9 +20,9 @@ class_name PixelRenderer extends Node2D
 
 @export_group("Atmosphere")
 @export var atmosphere_color: Color = Color(1, 1, 1, 1)
-@export_range(0.5, 2.0, 0.05) var brightness: float = 1.2
+@export_range(0.5, 2.0, 0.05) var brightness: float = 1.5
 @export_range(0.5, 2.0, 0.05) var contrast: float = 1.05
-@export_range(0.0, 6.0, 0.05) var vignette: float = 1.5
+@export_range(0.0, 6.0, 0.05) var vignette: float = 0.5
 
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
