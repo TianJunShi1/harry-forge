@@ -53,6 +53,12 @@ class_name GameCamera2D extends Camera2D
 ## 松键后回中速度（建议比 engage 快，让回弹干脆）
 @export_range(0.1, 20.0, 0.1) var look_y_return_speed: float = 3.0
 
+@export_group("Dead Zone")
+## 死区宽度（像素）。X 轴：目标在此范围内水平移动相机不跟随。0 = 禁用
+@export_range(0.0, 200.0, 1.0) var dead_zone_width: float = 0.0
+## 死区高度（像素）。Y 轴：目标在此范围内垂直移动相机不跟随。0 = 禁用
+@export_range(0.0, 200.0, 1.0) var dead_zone_height: float = 0.0
+
 @export_group("Bounds")
 ## 软边界宽度（像素）。0 = 硬 clamp，>0 = 靠近边界时减速
 @export_range(0.0, 300.0, 1.0) var bounds_softness: float = 60.0
@@ -472,6 +478,31 @@ func _compute_desired_position(delta: float) -> Vector2:
 				total_weight += w
 		target_pos = weighted / total_weight
 
+	# 死区：目标点超出以 _smoothed_position 为中心的矩形时，
+	# 相机追到死区边缘而非直接追目标中心，保持传统平台跳跃的矩形死区手感。
+	# 两者均为 0（默认）时条件不进入，零运行时开销。
+	if dead_zone_width > 0.0 or dead_zone_height > 0.0:
+		var dead_zone_target := target_pos
+		if dead_zone_width > 0.0:
+			var half_w := dead_zone_width * 0.5
+			var dx := target_pos.x - _smoothed_position.x
+			if dx > half_w:
+				dead_zone_target.x = target_pos.x - half_w
+			elif dx < -half_w:
+				dead_zone_target.x = target_pos.x + half_w
+			else:
+				dead_zone_target.x = _smoothed_position.x
+		if dead_zone_height > 0.0:
+			var half_h := dead_zone_height * 0.5
+			var dy := target_pos.y - _smoothed_position.y
+			if dy > half_h:
+				dead_zone_target.y = target_pos.y - half_h
+			elif dy < -half_h:
+				dead_zone_target.y = target_pos.y + half_h
+			else:
+				dead_zone_target.y = _smoothed_position.y
+		target_pos = dead_zone_target
+
 	# 软边界减速
 	if _target_has_bounds:
 		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, displayed_zoom)
@@ -595,6 +626,12 @@ func _draw() -> void:
 	if _target_has_bounds:
 		var local_rect := Rect2(_displayed_bounds.position - global_position, _displayed_bounds.size)
 		draw_rect(local_rect, Color(1, 1, 0, 0.6), false, 2.0)
+	if dead_zone_width > 0.0 or dead_zone_height > 0.0:
+		var dz_rect := Rect2(
+			subpixel_offset - Vector2(dead_zone_width, dead_zone_height) * 0.5,
+			Vector2(dead_zone_width, dead_zone_height)
+		)
+		draw_rect(dz_rect, Color(0.2, 0.8, 1.0, 0.5), false, 1.5)
 	for fp in _focus_points.values():
 		var local_pos: Vector2 = fp["position"] - global_position
 		draw_circle(local_pos, 6.0, Color(0.4, 1.0, 0.4, fp["weight_current"]))
