@@ -22,7 +22,8 @@ class_name PixelRenderer extends Node2D
 @export var atmosphere_color: Color = Color(1, 1, 1, 1)
 @export_range(0.5, 2.0, 0.05) var brightness: float = 1.5
 @export_range(0.5, 2.0, 0.05) var contrast: float = 1.05
-@export_range(0.0, 1.0, 0.05) var vignette: float = 0.65
+@export_range(0.0, 1.0, 0.05) var vignette: float = 0.6
+@export var vignette_color: Color = Color(0, 0, 0, 1)
 
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
@@ -59,6 +60,7 @@ func _apply_atmosphere_exports() -> void:
 	mat.set_shader_parameter("brightness", brightness)
 	mat.set_shader_parameter("contrast", contrast)
 	mat.set_shader_parameter("vignette_strength", vignette)
+	mat.set_shader_parameter("vignette_color", vignette_color)
 
 
 # ============================================================================
@@ -214,6 +216,18 @@ func set_atmosphere_color(color: Color, duration: float = 0.0) -> void:
 
 
 ## 设置暗角强度（0=无暗角，6=极强）。duration > 0 时平滑过渡。
+func set_vignette_color(color: Color, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("vignette_color", color)
+		return
+	var from: Color = mat.get_shader_parameter("vignette_color")
+	create_tween().tween_method(
+		func(v: Color) -> void: mat.set_shader_parameter("vignette_color", v),
+		from, color, duration
+	)
+
+
 func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
 	var mat := _display.material as ShaderMaterial
 	if mat == null:
