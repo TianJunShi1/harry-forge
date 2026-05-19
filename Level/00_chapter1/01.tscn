@@ -100,9 +100,7 @@ position = Vector2(1004, 29)
 position = Vector2(570, 194)
 
 [node name="NpcSample" parent="Entities" unique_id=1724792271 instance=ExtResource("6_lw3vo")]
-visible = false
 position = Vector2(-393, 0)
-scale = Vector2(-1, 1)
 
 [node name="LevelFlow" type="Node2D" parent="." unique_id=829380553]
 
