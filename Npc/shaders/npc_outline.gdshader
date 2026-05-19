@@ -1,66 +1,20 @@
 shader_type canvas_item;
 
-uniform bool outline_enabled = false;
-uniform vec4 outline_color : source_color = vec4(0.25, 0.85, 1.0, 1.0);
-uniform float glow_intensity : hint_range(0.0, 3.0) = 1.8;
-uniform float pulse_speed : hint_range(0.0, 8.0) = 2.5;
+uniform vec4 outline_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 
 void fragment() {
-	vec4 base = texture(TEXTURE, UV);
+	vec2 px = TEXTURE_PIXEL_SIZE;
 
-	if (outline_enabled && base.a < 0.05) {
-		vec2 px = TEXTURE_PIXEL_SIZE;
+	// 将 sprite 轮廓向外扩 1px：对当前像素及 8 方向邻居取最大 alpha
+	float a = texture(TEXTURE, UV).a;
+	a = max(a, texture(TEXTURE, UV + vec2( px.x,  0.0)).a);
+	a = max(a, texture(TEXTURE, UV + vec2(-px.x,  0.0)).a);
+	a = max(a, texture(TEXTURE, UV + vec2( 0.0,   px.y)).a);
+	a = max(a, texture(TEXTURE, UV + vec2( 0.0,  -px.y)).a);
+	a = max(a, texture(TEXTURE, UV + vec2( px.x,  px.y)).a);
+	a = max(a, texture(TEXTURE, UV + vec2(-px.x,  px.y)).a);
+	a = max(a, texture(TEXTURE, UV + vec2( px.x, -px.y)).a);
+	a = max(a, texture(TEXTURE, UV + vec2(-px.x, -px.y)).a);
 
-		vec2 d0 = vec2( px.x,  0.0);
-		vec2 d1 = vec2(-px.x,  0.0);
-		vec2 d2 = vec2( 0.0,   px.y);
-		vec2 d3 = vec2( 0.0,  -px.y);
-		vec2 d4 = vec2( px.x,  px.y);
-		vec2 d5 = vec2(-px.x,  px.y);
-		vec2 d6 = vec2( px.x, -px.y);
-		vec2 d7 = vec2(-px.x, -px.y);
-
-		// r=1：硬边描边
-		float a1 = 0.0;
-		a1 = max(a1, texture(TEXTURE, UV + d0).a);
-		a1 = max(a1, texture(TEXTURE, UV + d1).a);
-		a1 = max(a1, texture(TEXTURE, UV + d2).a);
-		a1 = max(a1, texture(TEXTURE, UV + d3).a);
-		a1 = max(a1, texture(TEXTURE, UV + d4).a);
-		a1 = max(a1, texture(TEXTURE, UV + d5).a);
-		a1 = max(a1, texture(TEXTURE, UV + d6).a);
-		a1 = max(a1, texture(TEXTURE, UV + d7).a);
-
-		// r=2：中层辉光
-		float a2 = 0.0;
-		a2 = max(a2, texture(TEXTURE, UV + d0 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d1 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d2 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d3 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d4 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d5 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d6 * 2.0).a);
-		a2 = max(a2, texture(TEXTURE, UV + d7 * 2.0).a);
-
-		// r=3：外层淡晕
-		float a3 = 0.0;
-		a3 = max(a3, texture(TEXTURE, UV + d0 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d1 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d2 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d3 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d4 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d5 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d6 * 3.0).a);
-		a3 = max(a3, texture(TEXTURE, UV + d7 * 3.0).a);
-
-		// 三层叠加：内圈实心 + 中层半透 + 外层淡晕
-		float glow_a = clamp(a1 * 1.0 + (a2 - a1) * 0.55 + (a3 - a2) * 0.25, 0.0, 1.0);
-
-		float pulse = sin(TIME * pulse_speed) * 0.5 + 0.5;
-		float brightness = 1.0 + pulse * glow_intensity;
-
-		COLOR = vec4(outline_color.rgb * brightness, glow_a * outline_color.a);
-	} else {
-		COLOR = base;
-	}
+	COLOR = vec4(outline_color.rgb, a * outline_color.a);
 }

@@ -2,9 +2,7 @@ class_name NpcSample extends Node2D
 
 ## wait 动画随机触发间隔范围（秒）
 @export var idle_variation_interval: Vector2 = Vector2(6.0, 14.0)
-@export var outline_color: Color = Color(0.25, 0.85, 1.0, 1.0)
-@export var glow_intensity: float = 1.8
-@export var pulse_speed: float = 2.5
+@export var outline_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 
 @onready var _anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var _zone: Area2D = $DetectionZone
@@ -12,13 +10,12 @@ class_name NpcSample extends Node2D
 var _player: Player = null
 var _is_talking: bool = false
 var _variation_timer: float = 0.0
-var _outline_mat: ShaderMaterial
+var _outline_node: AnimatedSprite2D
 
 
 func _ready() -> void:
 	_zone.body_entered.connect(_on_body_entered)
 	_zone.body_exited.connect(_on_body_exited)
-	# animation_looped：循环动画每完成一次循环时触发（loop=true 时有效）
 	_anim.animation_looped.connect(_on_animation_looped)
 	_anim.play(&"idle")
 	_reset_variation_timer()
@@ -34,15 +31,19 @@ func _process(delta: float) -> void:
 			if not _is_talking:
 				_reset_variation_timer()
 
-	# wait 变化动画仅在 idle 状态下计时触发
 	if _anim.animation == &"idle":
 		_variation_timer -= delta
 		if _variation_timer <= 0.0:
 			_anim.play(&"wait")
 
+	# 同步描边节点的帧和朝向
+	if _outline_node and _outline_node.visible:
+		_outline_node.animation = _anim.animation
+		_outline_node.frame = _anim.frame
+		_outline_node.flip_h = _anim.flip_h
+
 
 func _on_animation_looped() -> void:
-	# wait 播完一次完整循环后回到 idle
 	if _anim.animation == &"wait":
 		_anim.play(&"idle")
 		_reset_variation_timer()
@@ -71,15 +72,21 @@ func _reset_variation_timer() -> void:
 
 
 func _setup_outline() -> void:
-	_outline_mat = ShaderMaterial.new()
-	_outline_mat.shader = load("res://Npc/shaders/npc_outline.gdshader")
-	_outline_mat.set_shader_parameter(&"outline_enabled", false)
-	_outline_mat.set_shader_parameter(&"outline_color", outline_color)
-	_outline_mat.set_shader_parameter(&"glow_intensity", glow_intensity)
-	_outline_mat.set_shader_parameter(&"pulse_speed", pulse_speed)
-	_anim.material = _outline_mat
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://Npc/shaders/npc_outline.gdshader")
+	mat.set_shader_parameter(&"outline_color", outline_color)
+
+	_outline_node = AnimatedSprite2D.new()
+	_outline_node.sprite_frames = _anim.sprite_frames
+	_outline_node.position = _anim.position
+	_outline_node.material = mat
+	# 绝对 z_index -1：渲染在 TileMapLayer（z=0）之下，tiles 会自然遮挡描边
+	_outline_node.z_as_relative = false
+	_outline_node.z_index = -1
+	_outline_node.visible = false
+	add_child(_outline_node)
 
 
 func _set_outline(enabled: bool) -> void:
-	if _outline_mat:
-		_outline_mat.set_shader_parameter(&"outline_enabled", enabled)
+	if _outline_node:
+		_outline_node.visible = enabled
