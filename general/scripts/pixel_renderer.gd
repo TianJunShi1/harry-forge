@@ -150,11 +150,14 @@ func _process(_delta: float) -> void:
 	# 这里只读，找不到就跳过本帧渲染调整
 	if not is_instance_valid(_camera):
 		return
-	# 蔚蓝架构：缩放在外层做。effective_scale 取 round 后始终为整数物理倍数，
-	# 任意 zoom 意图值（1.2/1.4 等）都 pixel-perfect，无物理像素宽度不均问题。
-	# maxf(1.0, ...) 防止极小 zoom 时 round 结果为 0 导致 DisplaySprite 消失。
+	# 蔚蓝架构：缩放在外层做，NEAREST filter 保证每个游戏像素绝对锐利。
+	# effective_scale 保持 float：非整数 zoom（1.2/1.4）时部分物理像素宽 4px、
+	# 部分宽 5px，但像素边缘仍完全清晰（蔚蓝式 sharp non-integer zoom）。
+	# 不做 roundf：整数取整会在 zoom 插值途中触发突变（如 4×→5×），
+	# 在 CameraZone 过渡动画中产生可见的一帧跳变。
+	# maxf(1.0, ...) 防止极小 zoom 导致 DisplaySprite 缩到 0。
 	var zoom_factor := _camera.displayed_zoom.x
-	var effective_scale := maxf(1.0, roundf(float(_current_scale) * zoom_factor))
+	var effective_scale := maxf(1.0, float(_current_scale) * zoom_factor)
 	_display.scale = Vector2(effective_scale, effective_scale)
 	# subpixel 补偿：1 game pixel = effective_scale physical pixels，残差按此换算
 	var phys_offset := (_camera.subpixel_offset * effective_scale).round()
