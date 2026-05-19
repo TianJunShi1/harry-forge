@@ -80,11 +80,10 @@ func _setup_outline() -> void:
 	_outline_node.sprite_frames = _anim.sprite_frames
 	_outline_node.position = _anim.position
 	_outline_node.material = mat
-	# 绝对 z_index -1：渲染在 TileMapLayer（z=0）之下，tiles 会自然遮挡描边
-	_outline_node.z_as_relative = false
-	_outline_node.z_index = -1
 	_outline_node.visible = false
 	add_child(_outline_node)
+	# 放在 AnimatedSprite2D 之前：同 z=0 下树序靠前 = 渲染靠后（被主 sprite 覆盖），只留 1px 边缘
+	move_child(_outline_node, _anim.get_index())
 
 
 func _set_outline(enabled: bool) -> void:
