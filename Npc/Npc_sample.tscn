@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bmustsxwdgpm5"]
 
 [ext_resource type="Texture2D" uid="uid://bhqhioha752vu" path="res://Npc/test_npc1.png" id="1_c52kn"]
+[ext_resource type="Script" path="res://Npc/npc_sample.gd" id="2_npcscript"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_yb657"]
 atlas = ExtResource("1_c52kn")
@@ -142,6 +143,9 @@ region = Rect2(128, 768, 64, 64)
 atlas = ExtResource("1_c52kn")
 region = Rect2(192, 768, 64, 64)
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_detect"]
+radius = 80.0
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_a5gj7"]
 animations = [{
 "frames": [{
@@ -271,9 +275,16 @@ animations = [{
 }]
 
 [node name="NpcSample" type="Node2D" unique_id=389903170]
+script = ExtResource("2_npcscript")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=447349168]
 position = Vector2(0, -16)
 sprite_frames = SubResource("SpriteFrames_a5gj7")
 animation = &"idle"
-frame_progress = 0.7745297
+
+[node name="DetectionZone" type="Area2D" parent="." unique_id=512847203]
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionZone" unique_id=623951847]
+shape = SubResource("CircleShape2D_detect")
