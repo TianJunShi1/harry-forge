@@ -24,14 +24,15 @@ size = Vector2(2039.7073, 663.96436)
 size = Vector2(323.5, 203)
 
 [sub_resource type="Gradient" id="Gradient_torch"]
-colors = PackedColorArray(1.0, 0.85, 0.5, 1.0, 1.0, 0.85, 0.5, 0.0)
-offsets = PackedFloat32Array(0.0, 1.0)
+colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.85, 0.5, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_torch"]
 gradient = SubResource("Gradient_torch")
 width = 128
 height = 128
 fill = 1
+fill_from = Vector2(0.5, 0.47863248)
+fill_to = Vector2(0.8162393, 0.15384616)
 
 [node name="01" type="Node2D" unique_id=159589538]
 
@@ -103,10 +104,10 @@ target_spawn_id = &"from_chapter1_1"
 
 [node name="TorchLight" type="PointLight2D" parent="." unique_id=741852963]
 position = Vector2(1265, -60)
-texture = SubResource("GradientTexture2D_torch")
-color = Color(1.0, 0.8, 0.45, 1.0)
+color = Color(1, 0.8, 0.45, 1)
 energy = 1.4
-texture_scale = 3.0
+texture = SubResource("GradientTexture2D_torch")
+texture_scale = 2.0
 
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]
