@@ -15,11 +15,12 @@ void fragment() {
 	col.rgb *= brightness;
 	col.rgb = (col.rgb - 0.5) * contrast + 0.5;
 
-	// 矩形边缘公式：所有边（上下左右+四角）均匀压暗，不再只有四角
-	float v = UV.x * (1.0 - UV.x) * UV.y * (1.0 - UV.y);
-	// pow 指数控制过渡柔和度（越小越渐进，越大越在边缘集中）
-	float mask = 1.0 - clamp(pow(v * 16.0, 0.35), 0.0, 1.0);
-	col.rgb = mix(col.rgb, vignette_color.rgb, mask * vignette_strength);
+	// 椭圆暗角：水平半径 0.8 > 屏幕半宽 0.5，左右边缘中心 d=0.625 低于阈值 0.65
+	// 垂直半径 0.45，上下边缘 d=1.11，四角 d>1.27，均超过阈值产生渐变
+	vec2 c = UV - vec2(0.5);
+	float d = length(vec2(c.x / 0.8, c.y / 0.45));
+	float mask = smoothstep(0.65, 1.1, d) * vignette_strength;
+	col.rgb = mix(col.rgb, vignette_color.rgb, mask);
 
 	col.rgb = clamp(col.rgb, 0.0, 1.0);
 	COLOR = col;
