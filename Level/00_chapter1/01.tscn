@@ -21,7 +21,7 @@ height = 200
 size = Vector2(2039.7073, 663.96436)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hp1sv"]
-size = Vector2(323.5, 203)
+size = Vector2(354.5, 200)
 
 [sub_resource type="Gradient" id="Gradient_torch"]
 colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.85, 0.5, 0)
@@ -66,15 +66,15 @@ zone_priority = 10
 transition_duration = 1.2
 
 [node name="CollisionShape2D" parent="CameraBounds2" index="0" unique_id=550665942]
-position = Vector2(-277.75, -91.5)
+position = Vector2(-262.25, -90)
 shape = SubResource("RectangleShape2D_hp1sv")
 debug_color = Color(0.6083317, 0.36382565, 1, 0.41960785)
 
 [node name="BoundsCenter" parent="CameraBounds2" index="1" unique_id=703636230]
-position = Vector2(-271, -74)
+position = Vector2(-271, -88)
 
 [node name="Player" parent="." unique_id=330197014 instance=ExtResource("2_6rgpo")]
-position = Vector2(1265, -32)
+position = Vector2(1356, -39)
 
 [node name="BouncePad" parent="." unique_id=1258038184 instance=ExtResource("3_qj3k6")]
 position = Vector2(1004, 29)
@@ -92,22 +92,27 @@ position = Vector2(1561, -53)
 target_level_path = "uid://c22q78nbdwaa6"
 target_spawn_id = &"from_chapter1"
 
-[node name="SpawnFromChapter2" parent="." unique_id=1557364962 instance=ExtResource("8_spawn")]
-position = Vector2(1533, -42)
-spawn_id = &"from_chapter2"
-spawn_facing = 1
-
 [node name="TransitionToChapter3" parent="." unique_id=458547490 instance=ExtResource("7_trans")]
 position = Vector2(1561, 241)
 target_level_path = "uid://c22q78nbdwaa6"
 target_spawn_id = &"from_chapter1_1"
 
+[node name="SpawnFromChapter2" parent="." unique_id=1557364962 instance=ExtResource("8_spawn")]
+position = Vector2(1533, -42)
+spawn_id = &"from_chapter2"
+spawn_facing = 1
+
+[node name="SpawnFromChapter3" parent="." unique_id=470367583 instance=ExtResource("8_spawn")]
+position = Vector2(1534, 303)
+spawn_id = &"from_chapter2.2"
+spawn_facing = 1
+
 [node name="TorchLight" type="PointLight2D" parent="." unique_id=741852963]
-position = Vector2(1559, -74)
-color = Color(1, 0.8, 0.45, 1)
+position = Vector2(1311, -154)
+color = Color(0.45, 0.76166666, 1, 0.3882353)
 energy = 1.4
 texture = SubResource("GradientTexture2D_torch")
-texture_scale = 0.96
+texture_scale = 1.48
 
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]

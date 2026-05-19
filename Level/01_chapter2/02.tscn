@@ -36,6 +36,11 @@ position = Vector2(-65, 87)
 target_level_path = "res://Level/00_chapter1/01.tscn"
 target_spawn_id = &"from_chapter2"
 
+[node name="TransitionToChapter2" parent="." unique_id=1022427630 instance=ExtResource("4_trans")]
+position = Vector2(-65, 472)
+target_level_path = "uid://n23ibv17xmuk"
+target_spawn_id = &"from_chapter2.1"
+
 [node name="CameraBounds" parent="." unique_id=1325847261 instance=ExtResource("5_camb")]
 position = Vector2(875, 100)
 
