@@ -1,13 +1,15 @@
-[gd_scene load_steps=4 format=3 uid="uid://bpx5r3ndm7q4e"]
+[gd_scene load_steps=5 format=3 uid="uid://bpx5r3ndm7q4e"]
 
 [ext_resource type="Script" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
 
 [sub_resource type="Shader" id="Shader_fx"]
 code = "shader_type canvas_item;
 
-uniform float grain_amount : hint_range(0.0, 0.2) = 0.06;
-uniform float grain_speed  : hint_range(0.0, 10.0) = 2.0;
-uniform float vignette_strength : hint_range(0.0, 6.0) = 3.0;
+uniform float grain_amount    : hint_range(0.0, 0.2) = 0.06;
+uniform float grain_speed     : hint_range(0.0, 10.0) = 2.0;
+uniform float vignette_strength : hint_range(0.0, 6.0) = 1.5;
+// 宏区块覆盖比例：0=全屏干净，1=全屏噪点；0.55 约一半区域有颗粒感
+uniform float grain_coverage  : hint_range(0.0, 1.0) = 0.55;
 
 float rand(vec2 uv) {
 	return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
@@ -16,9 +18,15 @@ float rand(vec2 uv) {
 void fragment() {
 	vec4 col = texture(TEXTURE, UV);
 
-	// 胶片颗粒：TIME 偏移让每帧噪声不同，floor 保持像素对齐
-	vec2 g_uv = floor(UV * vec2(1280.0, 720.0) + TIME * grain_speed * 17.0);
-	float grain = (rand(g_uv) * 2.0 - 1.0) * grain_amount;
+	// 低频出现遮罩：把屏幕划成 12x7 宏区块，每块缓慢漂移
+	vec2 macro_uv = floor(UV * vec2(12.0, 7.0) + TIME * grain_speed * 0.15);
+	float presence = rand(macro_uv + vec2(53.1, 91.7));
+	// smoothstep 让区块边界柔和；presence < grain_coverage 的区块有噪点
+	float weight = smoothstep(grain_coverage - 0.15, grain_coverage + 0.15, 1.0 - presence);
+
+	// 高频胶片颗粒：像素对齐到游戏分辨率 480x270，X/Y 不同速度打破对称
+	vec2 g_uv = floor(UV * vec2(480.0, 270.0) + TIME * grain_speed * vec2(17.0, 13.0));
+	float grain = (rand(g_uv) * 2.0 - 1.0) * grain_amount * weight;
 	col.rgb += grain;
 
 	// 暗角：二次方衰减，中心不变，边角渐暗
@@ -35,6 +43,14 @@ shader = SubResource("Shader_fx")
 shader_parameter/grain_amount = 0.06
 shader_parameter/grain_speed = 2.0
 shader_parameter/vignette_strength = 1.5
+shader_parameter/grain_coverage = 0.55
+
+[sub_resource type="Environment" id="Environment_atm"]
+background_mode = 5
+adjustment_enabled = true
+adjustment_brightness = 1.2
+adjustment_contrast = 1.05
+adjustment_saturation = 1.0
 
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
@@ -50,7 +66,10 @@ default_canvas_item_texture_filter = 0
 [node name="GlobalEffects" type="Node2D" parent="SubViewport"]
 
 [node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects"]
-color = Color(0.6, 0.55, 0.7, 1)
+color = Color(1, 1, 1, 1)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport/GlobalEffects"]
+environment = SubResource("Environment_atm")
 
 [node name="DisplaySprite" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_fx")

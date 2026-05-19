@@ -21,6 +21,7 @@ class_name PixelRenderer extends Node2D
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
 @onready var _canvas_modulate: CanvasModulate = $SubViewport/GlobalEffects/CanvasModulate
+@onready var _world_env: WorldEnvironment = $SubViewport/GlobalEffects/WorldEnvironment
 
 var _camera: GameCamera2D
 # child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
@@ -209,3 +210,23 @@ func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
 		func(v: float) -> void: mat.set_shader_parameter("vignette_strength", v),
 		from, strength, duration
 	)
+
+
+## 设置全局亮度（1.0=默认，>1 更亮，<1 更暗）。duration > 0 时平滑过渡。
+func set_brightness(value: float, duration: float = 0.0) -> void:
+	var env := _world_env.environment
+	if duration <= 0.0:
+		env.adjustment_brightness = value
+		return
+	var tw := create_tween()
+	tw.tween_property(env, "adjustment_brightness", value, duration)
+
+
+## 设置全局对比度（1.0=默认，>1 更强烈）。duration > 0 时平滑过渡。
+func set_contrast(value: float, duration: float = 0.0) -> void:
+	var env := _world_env.environment
+	if duration <= 0.0:
+		env.adjustment_contrast = value
+		return
+	var tw := create_tween()
+	tw.tween_property(env, "adjustment_contrast", value, duration)
