@@ -18,6 +18,12 @@ class_name PixelRenderer extends Node2D
 @export var level: PackedScene
 @export var game_size: Vector2i = Vector2i(480, 270)
 
+@export_group("Atmosphere")
+@export var atmosphere_color: Color = Color(1, 1, 1, 1)
+@export_range(0.5, 2.0, 0.05) var brightness: float = 1.2
+@export_range(0.5, 2.0, 0.05) var contrast: float = 1.05
+@export_range(0.0, 6.0, 0.05) var vignette: float = 1.5
+
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
 @onready var _canvas_modulate: CanvasModulate = $SubViewport/GlobalEffects/CanvasModulate
@@ -38,6 +44,7 @@ func _ready() -> void:
 	process_priority = 1
 	_sub_viewport.size = game_size + Vector2i.ONE
 	_display.texture = _sub_viewport.get_texture()
+	_apply_atmosphere_exports()
 	if level:
 		load_level(level)
 	else:
@@ -45,6 +52,14 @@ func _ready() -> void:
 		_begin_camera_search()
 	get_tree().root.size_changed.connect(_recalculate_layout)
 	_recalculate_layout()
+
+
+func _apply_atmosphere_exports() -> void:
+	_canvas_modulate.color = atmosphere_color
+	var env := _world_env.environment
+	env.adjustment_brightness = brightness
+	env.adjustment_contrast = contrast
+	(_display.material as ShaderMaterial).set_shader_parameter("vignette_strength", vignette)
 
 
 # ============================================================================
