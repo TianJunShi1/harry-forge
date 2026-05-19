@@ -91,7 +91,7 @@ position = Vector2(-271, -88)
 [node name="Entities" type="Node2D" parent="." unique_id=1536308575]
 
 [node name="Player" parent="Entities" unique_id=330197014 instance=ExtResource("2_6rgpo")]
-position = Vector2(1356, -39)
+position = Vector2(111, -1)
 
 [node name="BouncePad" parent="Entities" unique_id=1258038184 instance=ExtResource("3_qj3k6")]
 position = Vector2(1004, 29)
@@ -100,7 +100,7 @@ position = Vector2(1004, 29)
 position = Vector2(570, 194)
 
 [node name="NpcSample" parent="Entities" unique_id=1724792271 instance=ExtResource("6_lw3vo")]
-position = Vector2(-393, 0)
+position = Vector2(191, 0)
 
 [node name="LevelFlow" type="Node2D" parent="." unique_id=829380553]
 
