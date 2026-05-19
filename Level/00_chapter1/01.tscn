@@ -103,11 +103,11 @@ target_level_path = "uid://c22q78nbdwaa6"
 target_spawn_id = &"from_chapter1_1"
 
 [node name="TorchLight" type="PointLight2D" parent="." unique_id=741852963]
-position = Vector2(1265, -60)
+position = Vector2(1559, -74)
 color = Color(1, 0.8, 0.45, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_torch")
-texture_scale = 2.0
+texture_scale = 0.96
 
 [editable path="CameraBounds"]
 [editable path="CameraBounds2"]

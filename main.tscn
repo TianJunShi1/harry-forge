@@ -9,7 +9,8 @@ script = ExtResource("3_main")
 
 [node name="PixelRenderer" parent="." unique_id=1741041668 instance=ExtResource("1_renderer")]
 level = ExtResource("2_0xm2m")
-vignette = 0.8
+vignette = 0.55
+vignette_color = Color(0.0150000295, 0, 0.18, 1)
 
 [node name="TransitionLayer" type="CanvasLayer" parent="." unique_id=1234567890]
 layer = 100
