@@ -24,6 +24,9 @@ class_name PixelRenderer extends Node2D
 @export_range(0.5, 2.0, 0.05) var contrast: float = 1.05
 @export_range(0.0, 1.0, 0.05) var vignette: float = 0.6
 @export var vignette_color: Color = Color(0, 0, 0, 1)
+@export_range(0.0, 0.2, 0.005) var grain_amount: float = 0.04
+@export_range(0.0, 1.0, 0.05) var grain_coverage: float = 0.6
+@export_range(0.0, 4.0, 0.1) var grain_speed: float = 1.0
 
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
@@ -61,6 +64,9 @@ func _apply_atmosphere_exports() -> void:
 	mat.set_shader_parameter("contrast", contrast)
 	mat.set_shader_parameter("vignette_strength", vignette)
 	mat.set_shader_parameter("vignette_color", vignette_color)
+	mat.set_shader_parameter("grain_amount", grain_amount)
+	mat.set_shader_parameter("grain_coverage", grain_coverage)
+	mat.set_shader_parameter("grain_speed", grain_speed)
 
 
 # ============================================================================
@@ -267,5 +273,31 @@ func set_contrast(value: float, duration: float = 0.0) -> void:
 	var tw := create_tween()
 	tw.tween_method(
 		func(v: float) -> void: mat.set_shader_parameter("contrast", v),
+		from, value, duration
+	)
+
+
+## 设置胶片颗粒强度（0=无颗粒）。duration > 0 时平滑过渡。
+func set_grain_amount(value: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("grain_amount", value)
+		return
+	var from: float = mat.get_shader_parameter("grain_amount")
+	create_tween().tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("grain_amount", v),
+		from, value, duration
+	)
+
+
+## 设置颗粒覆盖范围（0=极少区域，1=全屏覆盖）。duration > 0 时平滑过渡。
+func set_grain_coverage(value: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("grain_coverage", value)
+		return
+	var from: float = mat.get_shader_parameter("grain_coverage")
+	create_tween().tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("grain_coverage", v),
 		from, value, duration
 	)

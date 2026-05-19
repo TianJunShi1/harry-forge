@@ -9,11 +9,40 @@ uniform float brightness : hint_range(0.5, 2.0) = 1.0;
 uniform float contrast : hint_range(0.5, 2.0) = 1.0;
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.6;
 uniform vec4 vignette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float grain_amount : hint_range(0.0, 0.2) = 0.04;
+uniform float grain_coverage : hint_range(0.0, 1.0) = 0.6;
+uniform float grain_speed : hint_range(0.0, 4.0) = 1.0;
+
+float rand(vec2 co) {
+	return fract(sin(dot(co, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// 双线性插值值噪声：四角随机值 + smoothstep 曲线插值，无硬切边
+float value_noise(vec2 uv) {
+	vec2 i = floor(uv);
+	vec2 f = fract(uv);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = rand(i);
+	float b = rand(i + vec2(1.0, 0.0));
+	float c = rand(i + vec2(0.0, 1.0));
+	float d = rand(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
 
 void fragment() {
 	vec4 col = texture(TEXTURE, UV);
 	col.rgb *= brightness;
 	col.rgb = (col.rgb - 0.5) * contrast + 0.5;
+
+	// 有机低频遮罩：value_noise 缓慢漂移，无硬切边
+	vec2 mask_uv = UV * vec2(6.0, 4.0) + TIME * grain_speed * 0.06;
+	float presence = value_noise(mask_uv);
+	float weight = smoothstep(1.0 - grain_coverage - 0.15, 1.0 - grain_coverage + 0.15, presence);
+
+	// 高频胶片颗粒（480x270 像素对齐，X/Y 不同速）
+	vec2 g_uv = floor(UV * vec2(480.0, 270.0) + TIME * grain_speed * vec2(17.0, 13.0));
+	float grain = (rand(g_uv) * 2.0 - 1.0) * grain_amount * weight;
+	col.rgb += grain;
 
 	// 只用 y 因子：上下边缘+四角压暗，左右边缘中心（y=0.5，vy=1）mask=0 完全无过渡
 	float vy = UV.y * (1.0 - UV.y) * 4.0;
@@ -31,6 +60,9 @@ shader_parameter/brightness = 1.2
 shader_parameter/contrast = 1.05
 shader_parameter/vignette_strength = 0.6
 shader_parameter/vignette_color = Color(0, 0, 0, 1)
+shader_parameter/grain_amount = 0.04
+shader_parameter/grain_coverage = 0.6
+shader_parameter/grain_speed = 1.0
 
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
