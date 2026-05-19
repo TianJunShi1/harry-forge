@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://bpx5r3ndm7q4e"]
+[gd_scene load_steps=3 format=3 uid="uid://bpx5r3ndm7q4e"]
 
 [ext_resource type="Script" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
 
@@ -20,13 +20,6 @@ void fragment() {
 shader = SubResource("Shader_fx")
 shader_parameter/vignette_strength = 1.5
 
-[sub_resource type="Environment" id="Environment_atm"]
-background_mode = 5
-adjustment_enabled = true
-adjustment_brightness = 1.2
-adjustment_contrast = 1.05
-adjustment_saturation = 1.0
-
 [node name="PixelRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
 
@@ -42,9 +35,6 @@ default_canvas_item_texture_filter = 0
 
 [node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects"]
 color = Color(1, 1, 1, 1)
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport/GlobalEffects"]
-environment = SubResource("Environment_atm")
 
 [node name="DisplaySprite" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_fx")
