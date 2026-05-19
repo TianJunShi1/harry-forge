@@ -20,6 +20,7 @@ class_name PixelRenderer extends Node2D
 
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
+@onready var _canvas_modulate: CanvasModulate = $SubViewport/GlobalEffects/CanvasModulate
 
 var _camera: GameCamera2D
 # child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
@@ -179,3 +180,32 @@ func _find_camera_in_subviewport() -> GameCamera2D:
 		for child in node.get_children():
 			stack.append(child)
 	return null
+
+
+# ============================================================================
+# 大气效果 API（场景切换 / 白天黑夜过渡用）
+# ============================================================================
+
+## 设置全局大气颜色。duration > 0 时平滑过渡，= 0 时立即生效。
+func set_atmosphere_color(color: Color, duration: float = 0.0) -> void:
+	if duration <= 0.0:
+		_canvas_modulate.color = color
+		return
+	var tw := create_tween()
+	tw.tween_property(_canvas_modulate, "color", color, duration)
+
+
+## 设置暗角强度（0=无暗角，6=极强）。duration > 0 时平滑过渡。
+func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if mat == null:
+		return
+	if duration <= 0.0:
+		mat.set_shader_parameter("vignette_strength", strength)
+		return
+	var from: float = mat.get_shader_parameter("vignette_strength")
+	var tw := create_tween()
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("vignette_strength", v),
+		from, strength, duration
+	)
