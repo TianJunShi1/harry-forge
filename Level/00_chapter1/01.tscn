@@ -37,6 +37,8 @@ size = Vector2(354.5, 200)
 [node name="01" type="Node2D" unique_id=159589538]
 
 [node name="GameCamera" parent="." unique_id=701613553 instance=ExtResource("5_cam01")]
+fall_catch_up_smoothing = 11.0
+fall_catch_up_velocity_threshold = 125.0
 dead_zone_width = 5.0
 dead_zone_height = 5.0
 
