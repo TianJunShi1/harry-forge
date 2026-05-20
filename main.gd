@@ -28,7 +28,7 @@ func _setup_transition_shader() -> void:
 	mat.set_shader_parameter(&"shape_texture",    noise_tex)
 	mat.set_shader_parameter(&"factor",           0.0)
 	mat.set_shader_parameter(&"width",            0.225)
-	mat.set_shader_parameter(&"direction",        4)      # 径向
+	mat.set_shader_parameter(&"direction",        0)      # 初始值，运行时由 LevelManager 按速度覆盖
 	mat.set_shader_parameter(&"shape_tiling",     8.0)
 	mat.set_shader_parameter(&"shape_rotation",   45.0)
 	mat.set_shader_parameter(&"shape_scroll",     Vector2(0.1, 0.1))

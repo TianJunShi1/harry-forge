@@ -14,10 +14,10 @@ class_name LevelTransition extends Area2D
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
 ## 转场方向覆盖：勾选后使用下方手动方向，否则从玩家速度自动检测。
-@export var override_direction: bool = true
+@export var override_direction: bool = false
 ## 仅在 override_direction=true 时生效。
 ## 右/左/下/上：遮罩从该侧压来；径向：从屏幕中心向外溶解扩散。
-@export_enum("右", "左", "下", "上", "径向") var transition_direction: int = 4
+@export_enum("右", "左", "下", "上", "径向") var transition_direction: int = 0
 
 
 func _ready() -> void:
