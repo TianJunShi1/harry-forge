@@ -14,7 +14,7 @@ func _ready() -> void:
 	_mat.set_shader_parameter(&"factor", 1.0)
 	_mat.set_shader_parameter(&"direction", 4)
 	_mat.set_shader_parameter(&"width", 0.4)
-	_mat.set_shader_parameter(&"shape_tiling", 0.4)
+	_mat.set_shader_parameter(&"shape_tiling", 3.0)
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
 	_mat.set_shader_parameter(&"shape_treshold", 1.0)
 	_mat.set_shader_parameter(&"shape_texture", _bake_noise())
