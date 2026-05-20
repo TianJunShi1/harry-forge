@@ -72,7 +72,7 @@ func _setup_material() -> void:
 	_mat.set_shader_parameter(&"factor", 0.0)
 	_mat.set_shader_parameter(&"direction", 0)
 	_mat.set_shader_parameter(&"width", 0.4)
-	_mat.set_shader_parameter(&"shape_tiling", 1.2)
+	_mat.set_shader_parameter(&"shape_tiling", 0.1)
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
 	_mat.set_shader_parameter(&"shape_treshold", 1.0)
 	_mat.set_shader_parameter(&"shape_texture", _bake_noise())
