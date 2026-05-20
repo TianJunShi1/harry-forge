@@ -13,22 +13,12 @@ func _setup_transition_shader() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://general/level_transition/transition.gdshader")
 
-	# Simplex 噪声纹理：让擦除边缘凹凸不规则（对应截图中的 Shape Texture）
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise.frequency = 0.8  # 较高频率使溅射颗粒更细密
-	var noise_tex := NoiseTexture2D.new()
-	noise_tex.noise = noise
-	noise_tex.width = 256
-	noise_tex.height = 256
-	noise_tex.seamless = true
-
 	mat.set_shader_parameter(&"base_color",       Color.BLACK)
 	mat.set_shader_parameter(&"node_resolution",  _fade_rect.get_viewport_rect().size)
-	mat.set_shader_parameter(&"shape_texture",    noise_tex)
+	mat.set_shader_parameter(&"shape_texture",    _bake_noise_texture())
 	mat.set_shader_parameter(&"factor",           0.0)
 	mat.set_shader_parameter(&"width",            0.225)
-	mat.set_shader_parameter(&"direction",        0)      # 初始值，运行时由 LevelManager 按速度覆盖
+	mat.set_shader_parameter(&"direction",        0)
 	mat.set_shader_parameter(&"shape_tiling",     8.0)
 	mat.set_shader_parameter(&"shape_rotation",   45.0)
 	mat.set_shader_parameter(&"shape_scroll",     Vector2(0.1, 0.1))
@@ -36,3 +26,19 @@ func _setup_transition_shader() -> void:
 	mat.set_shader_parameter(&"shape_treshold",   1.0)
 
 	_fade_rect.material = mat
+
+
+# NoiseTexture2D 在 Godot 4 里异步生成，首帧 shader 会拿到空纹理导致效果异常。
+# 改用 Image 逐像素同步写入，保证 material 挂载时纹理已完全就绪。
+func _bake_noise_texture() -> ImageTexture:
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = 0.8
+	noise.fractal_octaves = 4
+	const SIZE := 128
+	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_L8)
+	for y in SIZE:
+		for x in SIZE:
+			var v: float = noise.get_noise_2d(float(x), float(y)) * 0.5 + 0.5
+			img.set_pixel(x, y, Color(v, v, v))
+	return ImageTexture.create_from_image(img)
