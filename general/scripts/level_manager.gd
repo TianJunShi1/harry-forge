@@ -7,7 +7,7 @@ extends Node
 signal transition_started(target_level: PackedScene, target_spawn_id: StringName)
 signal transition_finished
 
-@export var fade_duration: float = 0.2
+@export var fade_duration: float = 2.0
 ## 落地后触发器免疫期（秒），防止瞬间触发反向触发器产生 bounce-back
 @export var post_transition_grace: float = 0.3
 
@@ -37,7 +37,7 @@ func is_in_grace_period() -> bool:
 
 
 ## 触发关卡切换。在 fade 期间重入调用会被静默丢弃。
-func transition_to(packed: PackedScene, spawn_id: StringName = &"") -> void:
+func transition_to(packed: PackedScene, spawn_id: StringName = &"", direction: int = 0) -> void:
 	if _is_transitioning:
 		return
 	if packed == null:
@@ -46,12 +46,15 @@ func transition_to(packed: PackedScene, spawn_id: StringName = &"") -> void:
 	if _renderer == null or _fade_rect == null:
 		push_error("LevelManager.transition_to: register_renderer 尚未调用，无 PixelRenderer 或 FadeRect。")
 		return
-	_run_transition(packed, spawn_id)
+	_run_transition(packed, spawn_id, direction)
 
 
-func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
+func _run_transition(packed: PackedScene, spawn_id: StringName, direction: int) -> void:
 	_is_transitioning = true
 	transition_started.emit(packed, spawn_id)
+	# 在 fade-out 前写入擦除方向，保证淡出和淡入使用同一方向
+	if _fade_rect and _fade_rect.material is ShaderMaterial:
+		(_fade_rect.material as ShaderMaterial).set_shader_parameter(&"direction", direction)
 
 	# 冻结当前关卡的玩家：物理 + process + 输入全部停掉，
 	# 防止 fade out 黑屏期间继续移动、掉落或推进状态机。

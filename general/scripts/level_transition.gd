@@ -13,6 +13,8 @@ class_name LevelTransition extends Area2D
 @export var target_spawn_id: StringName = &"default"
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
+## 转场擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
+@export_enum("右", "左", "下", "上") var transition_direction: int = 0
 
 
 func _ready() -> void:
@@ -39,4 +41,4 @@ func _on_body_entered(body: Node2D) -> void:
 	if packed == null:
 		push_error("LevelTransition '%s'：无法加载场景 '%s'。" % [name, target_level_path])
 		return
-	LevelManager.transition_to(packed, target_spawn_id)
+	LevelManager.transition_to(packed, target_spawn_id, transition_direction)

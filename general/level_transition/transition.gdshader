@@ -5,10 +5,8 @@ uniform vec2 node_resolution;
 
 uniform float factor : hint_range(0.0, 1.0, 0.01) = 0.54;
 uniform float width = 0.4;
-
-group_uniforms gradient;
-uniform sampler2D gradient_texture;
-uniform bool gradient_fixed = false;
+## 擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
+uniform int direction = 0;
 
 group_uniforms shape;
 uniform sampler2D shape_texture;
@@ -17,16 +15,6 @@ uniform float shape_rotation = 0.0;
 uniform vec2 shape_scroll = vec2(0.0);
 uniform float shape_feathering : hint_range(0.0, 1.0, 0.01) = 0.00;
 uniform float shape_treshold : hint_range(0.0, 2.0, 0.01) = 1.0;
-
-float gradient(vec2 uv, vec2 fixed_uv, bool fixed){
-	float value = 0.0;
-	if(fixed){
-		value = texture(gradient_texture, fixed_uv).r;
-	} else {
-		value = texture(gradient_texture, uv).r;
-	}
-	return value;
-}
 
 vec2 rotate(vec2 uv, vec2 pivot, float angle)
 {
@@ -42,11 +30,22 @@ void fragment() {
 	float progress = mix(-width, 1.0, factor);
 	float aspect = node_resolution.y / node_resolution.x;
 
-	vec2 aspect_uv = ((UV-vec2(0.0,0.5)) * vec2(1.0, aspect))+vec2(0.0,0.5);
+	// 根据方向选择驱动轴
+	float dir_uv;
+	if (direction == 1) {
+		dir_uv = 1.0 - UV.x;  // 从右到左
+	} else if (direction == 2) {
+		dir_uv = UV.y;         // 从上到下
+	} else if (direction == 3) {
+		dir_uv = 1.0 - UV.y;  // 从下到上
+	} else {
+		dir_uv = UV.x;         // 从左到右（默认）
+	}
 
-	float value = clamp((gradient(UV, aspect_uv, gradient_fixed) - progress) / (width), 0.0, 1.0);
+	float value = clamp((dir_uv - progress) / width, 0.0, 1.0);
 
-	vec2 tiled_uv = rotate(mod((aspect_uv + vec2(TIME)*shape_scroll) * shape_tiling, 1.0), vec2(0.5), radians(shape_rotation));
+	vec2 aspect_uv = ((UV - vec2(0.0, 0.5)) * vec2(1.0, aspect)) + vec2(0.0, 0.5);
+	vec2 tiled_uv = rotate(mod((aspect_uv + vec2(TIME) * shape_scroll) * shape_tiling, 1.0), vec2(0.5), radians(shape_rotation));
 	float shape_value = 1.0 - texture(shape_texture, tiled_uv).r;
 
 	shape_value = mix(shape_feathering * 0.5, 1.0 - shape_feathering * 0.5, shape_value);
