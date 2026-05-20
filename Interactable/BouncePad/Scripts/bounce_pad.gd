@@ -17,6 +17,7 @@ func _ready() -> void:
 		$ProximityArea.body_entered.connect(_on_proximity_entered)
 	if not $ProximityArea.body_exited.is_connected(_on_proximity_exited):
 		$ProximityArea.body_exited.connect(_on_proximity_exited)
+	_prompt.follow_target = self
 
 
 func _process(delta: float) -> void:

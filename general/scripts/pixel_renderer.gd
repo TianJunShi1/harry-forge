@@ -42,6 +42,7 @@ var _display_origin: Vector2
 func _ready() -> void:
 	# 必须在 GameCamera（priority 0）之后处理，否则读到上一帧的 subpixel_offset 导致抖动
 	process_priority = 1
+	add_to_group(&"pixel_renderer")
 	_sub_viewport.size = game_size + Vector2i.ONE
 	_display.texture = _sub_viewport.get_texture()
 	_apply_atmosphere_exports()
@@ -98,6 +99,23 @@ func unload_level() -> void:
 
 func get_current_level() -> Node:
 	return _current_level
+
+
+## 当前有效显示倍数（基础整数缩放 × zoom）。
+func get_effective_scale() -> float:
+	if not is_instance_valid(_camera):
+		return float(_current_scale)
+	return maxf(1.0, float(_current_scale) * _camera.displayed_zoom.x)
+
+
+## 将游戏世界坐标转换为屏幕坐标，供 CanvasLayer 内的 UI 元素跟随世界对象。
+func world_to_screen(world_pos: Vector2) -> Vector2:
+	if not is_instance_valid(_camera):
+		return _screen_center
+	var cam_center := _camera.get_screen_center_position()
+	var eff := get_effective_scale()
+	var vp_pos := world_pos - cam_center + Vector2(game_size) * 0.5
+	return _display_origin + vp_pos * eff
 
 
 ## 返回 DisplaySprite 当前在屏幕坐标系中的显示矩形（含 zoom 缩放）。

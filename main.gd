@@ -9,6 +9,15 @@ func _ready() -> void:
 	_setup_transition_shader()
 	_sync_fade_rect_to_display()
 	get_tree().root.size_changed.connect(_sync_fade_rect_to_display)
+	_create_ui_layer()
+
+
+func _create_ui_layer() -> void:
+	var ui_layer := CanvasLayer.new()
+	ui_layer.name = "UILayer"
+	ui_layer.layer = 50
+	ui_layer.add_to_group(&"prompt_ui_layer")
+	add_child(ui_layer)
 
 
 func _setup_transition_shader() -> void:
