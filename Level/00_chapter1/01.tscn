@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
 [ext_resource type="PackedScene" uid="uid://3wpfik1dxy0i" path="res://Interactable/Torch/Torch.tscn" id="9_torch"]
+[ext_resource type="Script" path="res://general/scripts/ambient_light.gd" id="10_amblt"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -33,7 +34,8 @@ dead_zone_width = 5.0
 dead_zone_height = 5.0
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=388200002]
-color = Color(0.15, 0.16, 0.22, 1)
+script = ExtResource("10_amblt")
+runtime_color = Color(0.15, 0.16, 0.22, 1)
 
 [node name="World" type="Node2D" parent="." unique_id=894101426]
 
