@@ -100,4 +100,6 @@ frame_progress = 0.53339607
 texture_filter = 1
 color = Color(0.65999997, 0.97166663, 1, 1)
 energy = 1.4
+shadow_enabled = true
+shadow_filter = 0
 texture = ExtResource("3_f7x5t")
