@@ -102,6 +102,7 @@ script = ExtResource("1_torch")
 texture_filter = 1
 material = SubResource("CanvasItemMaterial_f7x5t")
 sprite_frames = SubResource("SpriteFrames_0bmjq")
+autoplay = "default"
 frame_progress = 0.53339607
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1428936291]
