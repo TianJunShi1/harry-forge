@@ -17,12 +17,12 @@ func _setup_transition_shader() -> void:
 	mat.set_shader_parameter(&"node_resolution",  _fade_rect.get_viewport_rect().size)
 	mat.set_shader_parameter(&"shape_texture",    _bake_noise_texture())
 	mat.set_shader_parameter(&"factor",           0.0)
-	mat.set_shader_parameter(&"width",            0.225)
+	mat.set_shader_parameter(&"width",            0.4)
 	mat.set_shader_parameter(&"direction",        0)
-	mat.set_shader_parameter(&"shape_tiling",     8.0)
-	mat.set_shader_parameter(&"shape_rotation",   45.0)
-	mat.set_shader_parameter(&"shape_scroll",     Vector2(0.1, 0.1))
-	mat.set_shader_parameter(&"shape_feathering", 0.0)
+	mat.set_shader_parameter(&"shape_tiling",     5.0)
+	mat.set_shader_parameter(&"shape_rotation",   0.0)   # 旋转+mod 会在贴图边界产生撕裂线
+	mat.set_shader_parameter(&"shape_scroll",     Vector2(0.0, 0.0))  # 滚动造成转场期间拉伸感
+	mat.set_shader_parameter(&"shape_feathering", 0.4)
 	mat.set_shader_parameter(&"shape_treshold",   1.0)
 
 	_fade_rect.material = mat
