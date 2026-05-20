@@ -109,13 +109,15 @@ func get_effective_scale() -> float:
 
 
 ## 将游戏世界坐标转换为屏幕坐标，供 CanvasLayer 内的 UI 元素跟随世界对象。
+## 包含 subpixel_offset 补偿，与 DisplaySprite 的亚像素平移保持完全同步。
 func world_to_screen(world_pos: Vector2) -> Vector2:
 	if not is_instance_valid(_camera):
 		return _screen_center
 	var cam_center := _camera.get_screen_center_position()
 	var eff := get_effective_scale()
 	var vp_pos := world_pos - cam_center + Vector2(game_size) * 0.5
-	return _display_origin + vp_pos * eff
+	var phys_offset := (_camera.subpixel_offset * eff).round()
+	return _display_origin + vp_pos * eff - phys_offset
 
 
 ## 返回 DisplaySprite 当前在屏幕坐标系中的显示矩形（含 zoom 缩放）。
