@@ -64,7 +64,7 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 
 	# Fade out：游戏画面 → 黑屏
 	var fade_out := create_tween()
-	fade_out.tween_property(_fade_rect, "color:a", 1.0, fade_duration)
+	fade_out.tween_method(_set_transition_factor, 0.0, 1.0, fade_duration)
 	await fade_out.finished
 
 	# 快照：记录旧玩家朝向，供落点没有强制 facing 时恢复
@@ -117,7 +117,7 @@ func _run_transition(packed: PackedScene, spawn_id: StringName) -> void:
 
 	# Fade in：黑屏 → 游戏画面
 	var fade_in := create_tween()
-	fade_in.tween_property(_fade_rect, "color:a", 0.0, fade_duration)
+	fade_in.tween_method(_set_transition_factor, 1.0, 0.0, fade_duration)
 	await fade_in.finished
 
 	# 解冻新玩家：恢复顺序 process → physics → input，
@@ -163,6 +163,16 @@ func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> v
 	# 把玩家 snap 到正下方最近地面，使 is_on_floor() 立即为 true，
 	# 状态机首帧直接进 Idle 而非 Fall，避免 fade-in 结束后出现短暂下落动画。
 	player.apply_floor_snap()
+
+
+func _set_transition_factor(v: float) -> void:
+	if not is_instance_valid(_fade_rect):
+		return
+	var mat := _fade_rect.material
+	if mat is ShaderMaterial:
+		(mat as ShaderMaterial).set_shader_parameter(&"factor", v)
+	else:
+		_fade_rect.color.a = v
 
 
 func _find_player_in_current_level() -> Player:
