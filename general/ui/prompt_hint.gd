@@ -1,6 +1,6 @@
 class_name PromptHint extends Node2D
 
-@export var dissolve_duration: float = 0.3
+@export var dissolve_duration: float = 1.5
 
 @onready var _icon: Sprite2D = $Sprite2D
 
@@ -12,7 +12,7 @@ func _ready() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://general/ui/dissolve.gdshader")
 	_mat.set_shader_parameter(&"factor", 1.0)
-	_mat.set_shader_parameter(&"direction", 4)
+	_mat.set_shader_parameter(&"direction", 0)
 	_mat.set_shader_parameter(&"width", 0.4)
 	_mat.set_shader_parameter(&"shape_tiling", 3.0)
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
