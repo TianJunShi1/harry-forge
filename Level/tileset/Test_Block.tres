@@ -2,27 +2,20 @@
 
 [ext_resource type="Texture2D" uid="uid://lubmt3dg0p6s" path="res://Level/tileset/sprites/testblock.png" id="1_76f8w"]
 
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_76f8w"]
-polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
-
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5doca"]
 texture = ExtResource("1_76f8w")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
-0:0/0/occlusion_layer_0/polygon_0/polygon = SubResource("OccluderPolygon2D_76f8w")
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 1:0/0 = 0
-1:0/0/occlusion_layer_0/polygon_0/polygon = SubResource("OccluderPolygon2D_76f8w")
 1:0/0/physics_layer_1/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, -14, -16, -14)
 1:0/0/physics_layer_1/polygon_0/one_way = true
 0:1/0 = 0
-0:1/0/occlusion_layer_0/polygon_0/polygon = SubResource("OccluderPolygon2D_76f8w")
 0:1/0/physics_layer_2/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 1:1/0 = 0
 
 [resource]
 tile_size = Vector2i(32, 32)
-occlusion_layer_0/light_mask = 1
 physics_layer_0/collision_layer = 2
 physics_layer_0/collision_mask = 0
 physics_layer_1/collision_layer = 4

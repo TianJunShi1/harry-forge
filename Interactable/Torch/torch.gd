@@ -1,17 +1,11 @@
 extends Node2D
 
 @onready var _light: PointLight2D = $PointLight2D
-@onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 @export var base_energy: float = 1.4
 @export var flicker_amount: float = 0.12
 
 var _time: float = 0.0
-
-
-func _ready() -> void:
-	if not _sprite.is_playing():
-		_sprite.play(&"default")
 
 
 func _process(delta: float) -> void:
