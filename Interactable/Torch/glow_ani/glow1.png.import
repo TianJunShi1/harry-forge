@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b578ogxwiqekh"
-path="res://.godot/imported/glow1.png-5e0d3ee41721a2e3b5f706e4bdf928c2.ctex"
+path="res://.godot/imported/glow1.png-b9a73a81b82a83c56ab8c648021fdfa3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://general/new/glow1.png"
-dest_files=["res://.godot/imported/glow1.png-5e0d3ee41721a2e3b5f706e4bdf928c2.ctex"]
+source_file="res://Interactable/Torch/glow_ani/glow1.png"
+dest_files=["res://.godot/imported/glow1.png-b9a73a81b82a83c56ab8c648021fdfa3.ctex"]
 
 [params]
 

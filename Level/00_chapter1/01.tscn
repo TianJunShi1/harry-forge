@@ -2,7 +2,7 @@
 
 [ext_resource type="TileSet" uid="uid://ttxdyeaie8lc" path="res://Level/tileset/Test_Block.tres" id="1_qyxhl"]
 [ext_resource type="PackedScene" uid="uid://dgjrbwlwhdtny" path="res://Player/player.tscn" id="2_6rgpo"]
-[ext_resource type="Texture2D" uid="uid://b578ogxwiqekh" path="res://general/new/glow1.png" id="3_nbwsf"]
+[ext_resource type="Texture2D" uid="uid://b578ogxwiqekh" path="res://Interactable/Torch/glow_ani/glow1.png" id="3_nbwsf"]
 [ext_resource type="PackedScene" uid="uid://bc5woagptill0" path="res://Interactable/BouncePad/BouncePad.tscn" id="3_qj3k6"]
 [ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="4_hp1sv"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="5_cam01"]
