@@ -7,6 +7,8 @@ extends Node2D
 func _ready() -> void:
 	LevelManager.register_renderer(_pixel_renderer, _fade_rect)
 	_setup_transition_shader()
+	_sync_fade_rect_to_display()
+	get_tree().root.size_changed.connect(_sync_fade_rect_to_display)
 
 
 func _setup_transition_shader() -> void:
@@ -26,6 +28,16 @@ func _setup_transition_shader() -> void:
 	mat.set_shader_parameter(&"shape_treshold",   1.0)
 
 	_fade_rect.material = mat
+
+
+func _sync_fade_rect_to_display() -> void:
+	var rect := _pixel_renderer.get_display_rect()
+	_fade_rect.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_fade_rect.position = rect.position
+	_fade_rect.size = rect.size
+	if _fade_rect.material is ShaderMaterial:
+		(_fade_rect.material as ShaderMaterial).set_shader_parameter(
+			&"node_resolution", rect.size)
 
 
 # NoiseTexture2D 在 Godot 4 里异步生成，首帧 shader 会拿到空纹理导致效果异常。

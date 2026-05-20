@@ -52,6 +52,7 @@ func transition_to(packed: PackedScene, spawn_id: StringName = &"", direction: i
 func _run_transition(packed: PackedScene, spawn_id: StringName, direction: int) -> void:
 	_is_transitioning = true
 	transition_started.emit(packed, spawn_id)
+	_sync_fade_rect_bounds()
 	# 在 fade-out 前写入擦除方向，保证淡出和淡入使用同一方向
 	if _fade_rect and _fade_rect.material is ShaderMaterial:
 		(_fade_rect.material as ShaderMaterial).set_shader_parameter(&"direction", direction)
@@ -166,6 +167,18 @@ func _apply_spawn(player: Player, spawn: SpawnPoint, flip_h_fallback: bool) -> v
 	# 把玩家 snap 到正下方最近地面，使 is_on_floor() 立即为 true，
 	# 状态机首帧直接进 Idle 而非 Fall，避免 fade-in 结束后出现短暂下落动画。
 	player.apply_floor_snap()
+
+
+func _sync_fade_rect_bounds() -> void:
+	if not is_instance_valid(_renderer) or not is_instance_valid(_fade_rect):
+		return
+	var rect := _renderer.get_display_rect()
+	_fade_rect.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_fade_rect.position = rect.position
+	_fade_rect.size = rect.size
+	if _fade_rect.material is ShaderMaterial:
+		(_fade_rect.material as ShaderMaterial).set_shader_parameter(
+			&"node_resolution", rect.size)
 
 
 func _set_transition_factor(v: float) -> void:
