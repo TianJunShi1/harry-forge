@@ -5,7 +5,7 @@ uniform vec2 node_resolution;
 
 uniform float factor : hint_range(0.0, 1.0, 0.01) = 0.54;
 uniform float width = 0.4;
-## 擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
+// 擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
 uniform int direction = 0;
 
 group_uniforms shape;
