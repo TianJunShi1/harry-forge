@@ -2,6 +2,7 @@
 
 [ext_resource type="TileSet" uid="uid://ttxdyeaie8lc" path="res://Level/tileset/Test_Block.tres" id="1_qyxhl"]
 [ext_resource type="PackedScene" uid="uid://dgjrbwlwhdtny" path="res://Player/player.tscn" id="2_6rgpo"]
+[ext_resource type="Texture2D" uid="uid://b578ogxwiqekh" path="res://general/new/glow1.png" id="3_nbwsf"]
 [ext_resource type="PackedScene" uid="uid://bc5woagptill0" path="res://Interactable/BouncePad/BouncePad.tscn" id="3_qj3k6"]
 [ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="4_hp1sv"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="5_cam01"]
@@ -16,17 +17,6 @@ colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 
 gradient = SubResource("Gradient_e5u0v")
 width = 200
 height = 200
-
-[sub_resource type="Gradient" id="Gradient_torch"]
-colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.85, 0.5, 0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_torch"]
-gradient = SubResource("Gradient_torch")
-width = 128
-height = 128
-fill = 1
-fill_from = Vector2(0.5, 0.47863248)
-fill_to = Vector2(0.8162393, 0.15384616)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_e5u0v"]
 size = Vector2(2039.7073, 663.96436)
@@ -57,9 +47,9 @@ tile_set = ExtResource("1_qyxhl")
 
 [node name="TorchLight" type="PointLight2D" parent="World" unique_id=741852963]
 position = Vector2(1311, -154)
-color = Color(0.45, 0.76166666, 1, 0.3882353)
+color = Color(0, 0.80849993, 0.99, 0.6156863)
 energy = 1.4
-texture = SubResource("GradientTexture2D_torch")
+texture = ExtResource("3_nbwsf")
 texture_scale = 1.48
 
 [node name="CameraZones" type="Node2D" parent="." unique_id=2005047653]
