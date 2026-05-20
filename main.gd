@@ -26,10 +26,10 @@ func _setup_transition_shader() -> void:
 	mat.set_shader_parameter(&"node_resolution",  _fade_rect.get_viewport_rect().size)
 	mat.set_shader_parameter(&"shape_texture",    noise_tex)
 	mat.set_shader_parameter(&"factor",           0.0)
-	mat.set_shader_parameter(&"width",            0.3)
+	mat.set_shader_parameter(&"width",            0.1)
 	mat.set_shader_parameter(&"direction",        0)
-	mat.set_shader_parameter(&"shape_tiling",     8.0)
-	mat.set_shader_parameter(&"shape_feathering", 0.3)
+	mat.set_shader_parameter(&"shape_tiling",     5.0)
+	mat.set_shader_parameter(&"shape_feathering", 0.0)
 	mat.set_shader_parameter(&"shape_treshold",   1.0)
 
 	_fade_rect.material = mat
