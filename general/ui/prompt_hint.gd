@@ -45,11 +45,13 @@ func _process(_delta: float) -> void:
 
 func show_hint() -> void:
 	show()
-	_tween_factor(0.0, 1.0)
+	var current := _mat.get_shader_parameter(&"factor") as float
+	_tween_factor(current, 1.0)
 
 
 func hide_hint() -> void:
-	_tween_factor(1.0, 0.0, true)
+	var current := _mat.get_shader_parameter(&"factor") as float
+	_tween_factor(current, 0.0, true)
 
 
 func _tween_factor(from: float, to: float, hide_after: bool = false) -> void:
@@ -70,7 +72,7 @@ func _setup_material() -> void:
 	_mat.set_shader_parameter(&"factor", 0.0)
 	_mat.set_shader_parameter(&"direction", 0)
 	_mat.set_shader_parameter(&"width", 0.4)
-	_mat.set_shader_parameter(&"shape_tiling", 3.0)
+	_mat.set_shader_parameter(&"shape_tiling", 1.2)
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
 	_mat.set_shader_parameter(&"shape_treshold", 1.0)
 	_mat.set_shader_parameter(&"shape_texture", _bake_noise())
