@@ -2,7 +2,7 @@ class_name PromptHint extends Node2D
 
 @export var dissolve_duration: float = 0.3
 
-@onready var _icon: Sprite2D = $Icon
+@onready var _icon: Sprite2D = $Sprite2D
 
 var _mat: ShaderMaterial
 var _tween: Tween
