@@ -1,14 +1,10 @@
 [gd_scene format=3 uid="uid://de7x4hhhhowhn"]
 
 [ext_resource type="Script" uid="uid://cqmjtbvfdh4o8" path="res://general/ui/prompt_hint.gd" id="1_hint"]
-[ext_resource type="Texture2D" uid="uid://cr8f71v86ws1i" path="res://general/new/SPACE.png" id="2_igbld"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_i4qpp"]
-atlas = ExtResource("2_igbld")
+[ext_resource type="Texture2D" uid="uid://pkwuahaj4ti2" path="res://general/new/SPACE.png" id="2_igbld"]
 
 [node name="PromptHint" type="Node2D" unique_id=1896358537]
 script = ExtResource("1_hint")
 
-[node name="Icon" type="Sprite2D" parent="." unique_id=1960759952]
-texture_filter = 1
-texture = SubResource("AtlasTexture_i4qpp")
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2093477293]
+texture = ExtResource("2_igbld")
