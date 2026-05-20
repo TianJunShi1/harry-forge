@@ -11,7 +11,7 @@ var _tween: Tween
 func _ready() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://general/ui/dissolve.gdshader")
-	_mat.set_shader_parameter(&"factor", 1.0)
+	_mat.set_shader_parameter(&"factor", 0.0)
 	_mat.set_shader_parameter(&"direction", 0)
 	_mat.set_shader_parameter(&"width", 0.4)
 	_mat.set_shader_parameter(&"shape_tiling", 3.0)
@@ -24,11 +24,11 @@ func _ready() -> void:
 
 func show_hint() -> void:
 	show()
-	_tween_factor(1.0, 0.0)
+	_tween_factor(0.0, 1.0)
 
 
 func hide_hint() -> void:
-	_tween_factor(0.0, 1.0, true)
+	_tween_factor(1.0, 0.0, true)
 
 
 func _tween_factor(from: float, to: float, hide_after: bool = false) -> void:
