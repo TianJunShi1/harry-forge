@@ -7,7 +7,7 @@ extends Node
 signal transition_started(target_level: PackedScene, target_spawn_id: StringName)
 signal transition_finished
 
-@export var fade_duration: float = 2.0
+@export var fade_duration: float = 1.5
 ## 落地后触发器免疫期（秒），防止瞬间触发反向触发器产生 bounce-back
 @export var post_transition_grace: float = 0.3
 

@@ -13,7 +13,7 @@ class_name LevelTransition extends Area2D
 @export var target_spawn_id: StringName = &"default"
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
-## 转场擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
+## 玩家进入方向：右/左/下/上。遮罩从该方向压来覆盖画面（与移动方向相同侧入场）。
 @export_enum("右", "左", "下", "上") var transition_direction: int = 0
 
 
@@ -41,4 +41,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if packed == null:
 		push_error("LevelTransition '%s'：无法加载场景 '%s'。" % [name, target_level_path])
 		return
-	LevelManager.transition_to(packed, target_spawn_id, transition_direction)
+	# 玩家向右移动时遮罩应从右侧压来（从右到左），其余方向同理；
+	# export 存的是玩家运动方向，shader direction 存的是擦除起始侧，两者轴相同但需对调。
+	const DIR_FLIP: Array[int] = [1, 0, 3, 2]
+	LevelManager.transition_to(packed, target_spawn_id, DIR_FLIP[transition_direction])
