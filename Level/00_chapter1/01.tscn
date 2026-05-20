@@ -33,7 +33,7 @@ dead_zone_width = 5.0
 dead_zone_height = 5.0
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=388200002]
-color = Color(0.08, 0.09, 0.13, 1)
+color = Color(0.15, 0.16, 0.22, 1)
 
 [node name="World" type="Node2D" parent="." unique_id=894101426]
 
