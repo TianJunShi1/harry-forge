@@ -32,6 +32,9 @@ fall_catch_up_velocity_threshold = 125.0
 dead_zone_width = 5.0
 dead_zone_height = 5.0
 
+[node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=388200002]
+color = Color(0.08, 0.09, 0.13, 1)
+
 [node name="World" type="Node2D" parent="." unique_id=894101426]
 
 [node name="Test_bg" type="Sprite2D" parent="World" unique_id=1613154371]
@@ -47,6 +50,15 @@ tile_set = ExtResource("1_qyxhl")
 
 [node name="Torch" parent="World" unique_id=741852963 instance=ExtResource("9_torch")]
 position = Vector2(1501, -151)
+
+[node name="Torch2" parent="World" unique_id=388200003 instance=ExtResource("9_torch")]
+position = Vector2(1004, -80)
+
+[node name="Torch3" parent="World" unique_id=388200004 instance=ExtResource("9_torch")]
+position = Vector2(570, 110)
+
+[node name="Torch4" parent="World" unique_id=388200005 instance=ExtResource("9_torch")]
+position = Vector2(191, -80)
 
 [node name="CameraZones" type="Node2D" parent="." unique_id=2005047653]
 

@@ -359,6 +359,17 @@ animations = [{
 "speed": 15.0
 }]
 
+[sub_resource type="Gradient" id="Gradient_player"]
+colors = PackedColorArray(1, 0.9, 0.7, 1, 1, 0.9, 0.7, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_player"]
+gradient = SubResource("Gradient_player")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_5htga"]
 
 [node name="Player" type="CharacterBody2D" unique_id=330197014 node_paths=PackedStringArray("initial_state")]
@@ -410,3 +421,10 @@ text = "label"
 unique_name_in_owner = true
 target_position = Vector2(0, 4)
 collision_mask = 4
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=388200001]
+position = Vector2(0, -16)
+color = Color(1, 0.88, 0.6, 1)
+energy = 0.55
+texture = SubResource("GradientTexture2D_player")
+texture_scale = 0.9
