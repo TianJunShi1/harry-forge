@@ -5,6 +5,9 @@ var follow_target: Node2D
 ## 相对目标的偏移，单位：游戏像素（会随 effective_scale 换算到屏幕像素）
 @export var follow_offset: Vector2 = Vector2(0, -20)
 @export var dissolve_duration: float = 1.5
+## 噪波块密度：值越小块越大越稀疏，值越大块越小越密集
+## 建议范围 0.5（极大块）~ 3.0（密集细碎）
+@export var shape_tiling: float = 1.0
 
 @onready var _icon: Sprite2D = $Sprite2D
 
@@ -72,7 +75,7 @@ func _setup_material() -> void:
 	_mat.set_shader_parameter(&"factor", 0.0)
 	_mat.set_shader_parameter(&"direction", 0)
 	_mat.set_shader_parameter(&"width", 0.4)
-	_mat.set_shader_parameter(&"shape_tiling", 0.1)
+	_mat.set_shader_parameter(&"shape_tiling", shape_tiling)
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
 	_mat.set_shader_parameter(&"shape_treshold", 1.0)
 	_mat.set_shader_parameter(&"shape_texture", _bake_noise())
@@ -82,8 +85,8 @@ func _setup_material() -> void:
 func _bake_noise() -> ImageTexture:
 	var noise := FastNoiseLite.new()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise.frequency = 0.8
-	noise.fractal_octaves = 4
+	noise.frequency = 0.15
+	noise.fractal_octaves = 2
 	const SIZE := 64
 	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_L8)
 	for y in SIZE:
