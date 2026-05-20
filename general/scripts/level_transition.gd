@@ -13,7 +13,9 @@ class_name LevelTransition extends Area2D
 @export var target_spawn_id: StringName = &"default"
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
-## 玩家进入方向：右/左/下/上。遮罩从该方向压来覆盖画面（与移动方向相同侧入场）。
+## 转场方向覆盖：勾选后使用下方手动方向，否则从玩家速度自动检测。
+@export var override_direction: bool = false
+## 仅在 override_direction=true 时生效，玩家进入方向（遮罩从同侧压来）。
 @export_enum("右", "左", "下", "上") var transition_direction: int = 0
 
 
@@ -41,7 +43,22 @@ func _on_body_entered(body: Node2D) -> void:
 	if packed == null:
 		push_error("LevelTransition '%s'：无法加载场景 '%s'。" % [name, target_level_path])
 		return
-	# 玩家向右移动时遮罩应从右侧压来（从右到左），其余方向同理；
-	# export 存的是玩家运动方向，shader direction 存的是擦除起始侧，两者轴相同但需对调。
+	var dir := _resolve_direction(body as Player)
+	LevelManager.transition_to(packed, target_spawn_id, dir)
+
+
+## 根据玩家速度自动推断 shader 擦除方向（遮罩从运动来向压来）。
+## override_direction=true 时改用手动设置。
+func _resolve_direction(player: Player) -> int:
+	var move_dir: int
+	if override_direction:
+		move_dir = transition_direction
+	else:
+		var vel := player.velocity
+		if abs(vel.x) >= abs(vel.y):
+			move_dir = 0 if vel.x >= 0.0 else 1  # 右 or 左
+		else:
+			move_dir = 2 if vel.y >= 0.0 else 3  # 下 or 上
+	# 玩家向右 → 遮罩从右侧压来（shader direction 1=从右到左），其余同理。
 	const DIR_FLIP: Array[int] = [1, 0, 3, 2]
-	LevelManager.transition_to(packed, target_spawn_id, DIR_FLIP[transition_direction])
+	return DIR_FLIP[move_dir]
