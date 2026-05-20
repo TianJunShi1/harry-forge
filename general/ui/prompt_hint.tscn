@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://prompt_hint_001"]
+
+[ext_resource type="Script" path="res://general/ui/prompt_hint.gd" id="1_hint"]
+
+[node name="PromptHint" type="Node2D"]
+script = ExtResource("1_hint")
+
+[node name="Icon" type="Sprite2D" parent="."]
+texture_filter = 1
