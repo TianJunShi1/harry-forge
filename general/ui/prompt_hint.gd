@@ -79,6 +79,9 @@ func _setup_material() -> void:
 	_mat.set_shader_parameter(&"shape_feathering", 0.0)
 	_mat.set_shader_parameter(&"shape_treshold", 1.0)
 	_mat.set_shader_parameter(&"shape_texture", _bake_noise())
+	# 用贴图实际尺寸修正长宽比，防止噪波在非正方形图标上横向拉伸
+	if _icon.texture != null:
+		_mat.set_shader_parameter(&"node_resolution", Vector2(_icon.texture.get_size()))
 	_icon.material = _mat
 
 
