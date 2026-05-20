@@ -452,11 +452,13 @@ func _compute_desired_position(delta: float) -> Vector2:
 	target_pos.y += vertical_offset
 
 	# 视线偏移：玩家静止地面按 W/S 时，镜头向上/下平移预览
+	# 注意：只更新 _look_y_value，不在此处叠加到 target_pos——
+	# 必须等软边界 clamp 完成后再加，否则 look_y 偏移会被软区阻力抵消，
+	# 导致靠近边界时两个方向都无法观察。
 	if look_y_enabled:
 		var y_intent := _read_look_y_intent()
 		var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
 		_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
-		target_pos.y += _look_y_value * look_y_distance
 
 	# 前视偏移
 	if look_ahead_enabled:
@@ -509,9 +511,14 @@ func _compute_desired_position(delta: float) -> Vector2:
 					dead_zone_target.y = _smoothed_position.y
 		target_pos = dead_zone_target
 
-	# 软边界减速
+	# 软边界减速（基础跟随位置，不含 look_y）
 	if _target_has_bounds:
 		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, displayed_zoom)
+
+	# look_y 在软边界之后叠加：朝边界方向由硬边界（_physics_process 末尾）兜底，
+	# 朝自由方向则完全不受软区阻力影响，靠近任意边界时仍能往反方向观察。
+	if look_y_enabled:
+		target_pos.y += _look_y_value * look_y_distance
 
 	return target_pos
 
