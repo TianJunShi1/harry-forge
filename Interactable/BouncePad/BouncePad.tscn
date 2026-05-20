@@ -42,15 +42,14 @@ shape = SubResource("RectangleShape2D_1obpa")
 
 [node name="ProximityArea" type="Area2D" parent="." unique_id=502198774]
 collision_layer = 0
-collision_mask = 1
-monitoring = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ProximityArea" unique_id=1526955611]
 position = Vector2(2.5, -34.5)
 shape = SubResource("RectangleShape2D_prox")
 
 [node name="PromptHint" parent="." unique_id=794224392 instance=ExtResource("2_prompt")]
-position = Vector2(0, -36)
+position = Vector2(0, -21)
+scale = Vector2(0.5, 0.5)
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
 [connection signal="body_entered" from="ProximityArea" to="." method="_on_proximity_entered"]
