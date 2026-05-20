@@ -103,8 +103,11 @@ func get_current_level() -> Node:
 ## 返回 DisplaySprite 当前在屏幕坐标系中的显示矩形（含 zoom 缩放）。
 ## 供 LevelManager / main.gd 将 FadeRect 对齐到游戏内容区域。
 func get_display_rect() -> Rect2:
-	var size := Vector2(game_size) * _display.scale.x
-	return Rect2(_display.position - size * 0.5, size)
+	# _display.position 含亚像素补偿（每帧最多飘移 1px），用 _screen_center 作为稳定中心。
+	# floor+ceil 消除浮点残差，再各扩 1px 确保覆盖边缘像素、不留微小切边。
+	var size := (Vector2(game_size) * _display.scale.x).ceil()
+	var origin := (_screen_center - size * 0.5).floor()
+	return Rect2(origin - Vector2.ONE, size + Vector2(2.0, 2.0))
 
 
 # ============================================================================
