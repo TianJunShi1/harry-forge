@@ -14,9 +14,10 @@ class_name LevelTransition extends Area2D
 ## 设为 true 可在 grace 期内也触发（默认 false，防止落点反弹）
 @export var ignore_grace: bool = false
 ## 转场方向覆盖：勾选后使用下方手动方向，否则从玩家速度自动检测。
-@export var override_direction: bool = false
-## 仅在 override_direction=true 时生效，玩家进入方向（遮罩从同侧压来）。
-@export_enum("右", "左", "下", "上") var transition_direction: int = 0
+@export var override_direction: bool = true
+## 仅在 override_direction=true 时生效。
+## 右/左/下/上：遮罩从该侧压来；径向：从屏幕中心向外溶解扩散。
+@export_enum("右", "左", "下", "上", "径向") var transition_direction: int = 4
 
 
 func _ready() -> void:
@@ -59,6 +60,6 @@ func _resolve_direction(player: Player) -> int:
 			move_dir = 0 if vel.x >= 0.0 else 1  # 右 or 左
 		else:
 			move_dir = 2 if vel.y >= 0.0 else 3  # 下 or 上
-	# 玩家向右 → 遮罩从右侧压来（shader direction 1=从右到左），其余同理。
-	const DIR_FLIP: Array[int] = [1, 0, 3, 2]
+	# 径向模式（4）对称无需翻转；轴向模式需对调（向右运动 → 遮罩从右侧压来）。
+	const DIR_FLIP: Array[int] = [1, 0, 3, 2, 4]
 	return DIR_FLIP[move_dir]

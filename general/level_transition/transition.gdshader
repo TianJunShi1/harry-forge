@@ -5,7 +5,7 @@ uniform vec2 node_resolution;
 
 uniform float factor : hint_range(0.0, 1.0, 0.01) = 0.54;
 uniform float width = 0.4;
-// 擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上
+// 擦除方向：0=从左到右，1=从右到左，2=从上到下，3=从下到上，4=径向从中心向外
 uniform int direction = 0;
 
 group_uniforms shape;
@@ -38,6 +38,10 @@ void fragment() {
 		dir_uv = UV.y;         // 从上到下
 	} else if (direction == 3) {
 		dir_uv = 1.0 - UV.y;  // 从下到上
+	} else if (direction == 4) {
+		// 径向：以屏幕中心为原点，修正宽高比后算距离，使遮罩圆形而非椭圆
+		vec2 radial_uv = (UV - vec2(0.5)) * vec2(1.0, aspect);
+		dir_uv = length(radial_uv) * 2.0;
 	} else {
 		dir_uv = UV.x;         // 从左到右（默认）
 	}
