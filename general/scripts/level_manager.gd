@@ -57,19 +57,20 @@ func _run_transition(packed: PackedScene, spawn_id: StringName, direction: int) 
 	if _fade_rect and _fade_rect.material is ShaderMaterial:
 		(_fade_rect.material as ShaderMaterial).set_shader_parameter(&"direction", direction)
 
-	# 冻结当前关卡的玩家：物理 + process + 输入全部停掉，
-	# 防止 fade out 黑屏期间继续移动、掉落或推进状态机。
-	# 旧 Player 之后随关卡 queue_free，不需要恢复。
+	# 找到旧玩家引用，但不立刻冻结——让其在淡出期间继续自然移动（Celeste 风格）。
 	var old_player := _find_player_in_current_level()
-	if old_player:
-		old_player.set_physics_process(false)
-		old_player.set_process(false)
-		old_player.set_process_unhandled_input(false)
 
-	# Fade out：游戏画面 → 黑屏
+	# Fade out：游戏画面 → 黑屏，玩家保持正常移动
 	var fade_out := create_tween()
 	fade_out.tween_method(_set_transition_factor, 0.0, 1.0, fade_duration)
 	await fade_out.finished
+
+	# 屏幕完全变黑后才冻结旧玩家，防止关卡切换期间产生额外物理帧。
+	# 旧 Player 之后随关卡 queue_free，不需要恢复。
+	if is_instance_valid(old_player):
+		old_player.set_physics_process(false)
+		old_player.set_process(false)
+		old_player.set_process_unhandled_input(false)
 
 	# 快照：记录旧玩家朝向，供落点没有强制 facing 时恢复
 	var flip_h_snapshot: bool = false
