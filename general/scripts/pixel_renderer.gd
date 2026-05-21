@@ -37,6 +37,7 @@ var _current_scale: int = 1
 var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
 var _display_origin: Vector2
+var _prev_zoom: float = 1.0
 
 
 func _ready() -> void:
@@ -190,8 +191,12 @@ func _process(_delta: float) -> void:
 	var zoom_factor := _camera.displayed_zoom.x
 	var effective_scale := maxf(1.0, float(_current_scale) * zoom_factor)
 	_display.scale = Vector2(effective_scale, effective_scale)
-	# subpixel 补偿：1 game pixel = effective_scale physical pixels，残差按此换算
-	var phys_offset := (_camera.subpixel_offset * effective_scale).round()
+	# subpixel 补偿：zoom 过渡期间 round() 会因两个浮点同时变化产生 1px 随机跳变；
+	# 过渡中放弃取整（接受极微的亚像素渗漏），zoom 稳定后恢复 pixel-perfect 对齐。
+	var raw_offset := _camera.subpixel_offset * effective_scale
+	var zoom_transitioning := absf(zoom_factor - _prev_zoom) > 0.0005
+	_prev_zoom = zoom_factor
+	var phys_offset := raw_offset if zoom_transitioning else raw_offset.round()
 	_display.position = _screen_center - phys_offset
 	# 鼠标坐标映射所需的左上角，按 effective_scale 计算
 	var actual_size := Vector2(game_size + Vector2i.ONE)
