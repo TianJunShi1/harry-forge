@@ -14,8 +14,8 @@ const A_FULL         := &"full"
 const A_DMG_TO_HALF  := &"used_to_half"       # 满 → 半
 const A_DMG_TO_EMPTY := &"used_half_to_empty"  # 半 → 空
 # 回血过渡（非循环）
-const A_HEAL_TO_HALF := &"empty_to_half"       # 空 → 半
-const A_HEAL_TO_FULL := &"half_to_full"        # 半 → 满
+const A_HEAL_TO_HALF := &"reset_half1"          # 空 → 半
+const A_HEAL_TO_FULL := &"reset_half2"         # 半 → 满
 const A_HEAL_FULL    := &"reset"               # 空 → 满（整颗回复）
 # ─────────────────────────────────────────────────────────────────────────────
 
