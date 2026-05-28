@@ -46,7 +46,7 @@ tile_map_data = PackedByteArray("AAD//wgAAQAAAAAAAAAAAAgAAQAAAAAAAAABAAgAAQAAAAA
 tile_set = ExtResource("1_qyxhl")
 
 [node name="TorchLight" parent="World" unique_id=741852963 instance=ExtResource("3_nbwsf")]
-position = Vector2(1311, -154)
+position = Vector2(1313, -128)
 
 [node name="CameraZones" type="Node2D" parent="." unique_id=2005047653]
 
