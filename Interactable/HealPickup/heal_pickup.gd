@@ -1,6 +1,6 @@
 extends Area2D
 
-@export var heal_amount: int = 1
+@export var heal_amount: int = 2
 @export var radius: float = 8.0
 
 
