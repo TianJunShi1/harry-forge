@@ -30,6 +30,23 @@ var drop_through_timer : float = 0.0
 ## 当玩家被弹跳板抛起时发出。Jump 状态监听此 signal 以避免被普通跳跃逻辑覆盖速度。
 signal bounce_requested
 
+#region /// ❤️ 血量
+@export var max_hp: int = 6
+var current_hp: int
+
+signal hp_changed(current: int, maximum: int)
+
+
+func take_damage(amount: int = 1) -> void:
+	current_hp = maxi(current_hp - amount, 0)
+	hp_changed.emit(current_hp, max_hp)
+
+
+func heal(amount: int = 1) -> void:
+	current_hp = mini(current_hp + amount, max_hp)
+	hp_changed.emit(current_hp, max_hp)
+#endregion
+
 #region /// 🎨 Animation
 @onready var anim : AnimatedSprite2D = $AnimatedSprite2D
 #endregion
@@ -45,6 +62,7 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	current_hp = max_hp
 	initialize_states()
 
 

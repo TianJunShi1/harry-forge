@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cx4mr7hud0001"]
+
+[ext_resource type="Script" uid="uid://cx4mr7bnq2hud" path="res://UI/HUD/hud.gd" id="1_hud"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_heart"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"empty",
+"speed": 8.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"full",
+"speed": 8.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"half",
+"speed": 8.0
+}]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="HeartTemplate" type="AnimatedSprite2D" parent="."]
+position = Vector2(12, 12)
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_heart")
