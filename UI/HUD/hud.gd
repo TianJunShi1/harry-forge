@@ -9,12 +9,22 @@ var _hearts: Array[AnimatedSprite2D] = []
 
 
 func _ready() -> void:
+	# PixelRenderer process_priority=1，HUD 必须晚于它运行才能读到当帧偏移量
+	process_priority = 2
 	_template.hide()
 	var player := get_tree().get_first_node_in_group(&"player") as Player
 	if is_instance_valid(player):
 		_connect_player(player)
 	# 关卡切换后 player 重新入树时重连
 	get_tree().node_added.connect(_on_node_added)
+
+
+func _process(_delta: float) -> void:
+	# 抵消 PixelRenderer 对 DisplaySprite 施加的 subpixel 补偿位移，
+	# 使 HUD 在屏幕坐标系中保持静止，不随相机亚像素偏移而抖动。
+	var renderer := get_tree().get_first_node_in_group(&"pixel_renderer") as PixelRenderer
+	if is_instance_valid(renderer):
+		offset = -renderer.get_display_game_offset()
 
 
 func _on_node_added(node: Node) -> void:
