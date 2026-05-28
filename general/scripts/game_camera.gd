@@ -500,8 +500,8 @@ func _compute_desired_position(delta: float) -> Vector2:
 			# 竖向速度超阈值时（跳跃/快速下落）绕过 Y 死区：
 			# 死区期间相机向上漂移，落地后玩家回到原点却仍在死区内，
 			# 导致相机永久卡在高处；绕过后由 fall_catch_up_smoothing 正常接管。
-			var vy_large := "velocity" in follow_target and \
-					absf(follow_target.velocity.y) >= fall_catch_up_velocity_threshold
+			var _cb := follow_target as CharacterBody2D
+			var vy_large := _cb != null and absf(_cb.velocity.y) >= fall_catch_up_velocity_threshold
 			if not vy_large:
 				if dy > half_h:
 					dead_zone_target.y = target_pos.y - half_h
@@ -528,9 +528,10 @@ func _compute_desired_position(delta: float) -> Vector2:
 ##   • velocity.y ≥ threshold + ramp（高速坠落）：返回 fall_catch_up_smoothing，相机紧追
 ##   • 之间线性过渡，避免突变
 func _resolve_fall_catch_up_smoothing() -> float:
-	if not is_instance_valid(follow_target) or not ("velocity" in follow_target):
+	var _cb2 := follow_target as CharacterBody2D
+	if not is_instance_valid(follow_target) or _cb2 == null:
 		return follow_smoothing
-	var vy: float = follow_target.velocity.y
+	var vy: float = _cb2.velocity.y
 	if vy <= fall_catch_up_velocity_threshold:
 		return follow_smoothing
 	var ramp := clampf((vy - fall_catch_up_velocity_threshold) / maxf(fall_catch_up_ramp, EPSILON), 0.0, 1.0)
@@ -546,8 +547,9 @@ func _read_look_y_intent() -> float:
 func _read_facing_intent() -> float:
 	if follow_target.has_method("get_camera_facing_intent"):
 		return follow_target.get_camera_facing_intent()
-	if "velocity" in follow_target:
-		var vx: float = follow_target.velocity.x
+	var _cb3 := follow_target as CharacterBody2D
+	if _cb3 != null:
+		var vx: float = _cb3.velocity.x
 		if absf(vx) < look_ahead_velocity_threshold:
 			return 0.0
 		return signf(vx)

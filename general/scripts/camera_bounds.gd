@@ -129,9 +129,11 @@ func _find_camera_in_subtree(root: Node) -> GameCamera2D:
 
 
 func _apply_if_player_already_inside() -> void:
-	# 清除可能因切关而失效的悬挂引用
+	# 清除可能因切关而失效的悬挂引用；重试一次兜底加载时序问题
 	if not is_instance_valid(_camera):
 		_camera = null
+	if _camera == null:
+		_resolve_camera()
 	if _camera == null:
 		return
 	for body in get_overlapping_bodies():

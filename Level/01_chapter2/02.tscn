@@ -54,6 +54,6 @@ target_spawn_id = &"from_chapter2"
 [node name="TransitionToChapter2" parent="LevelFlow" unique_id=1022427630 instance=ExtResource("4_trans")]
 position = Vector2(-77, 472)
 target_level_path = "uid://n23ibv17xmuk"
-target_spawn_id = &"from_chapter2.1"
+target_spawn_id = &"from_chapter2.2"
 
 [editable path="CameraZones/CameraBounds"]

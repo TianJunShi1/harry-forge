@@ -6,9 +6,10 @@ class_name PixelRenderer extends Node2D
 ##   1. SubViewport 内部永远 1:1 渲染（GameCamera2D.zoom 恒为 ONE），
 ##      内层 Camera2D 把 global_position floor 到整数像素，确保 SubViewport
 ##      输出绝对 pixel-perfect——无亚像素采样错位、无 shimmer
-##   2. DisplaySprite 在外层做缩放：effective_scale = round(_current_scale × zoom)
-##      effective_scale 始终为整数物理倍数，任意 zoom 值（1.2/1.4 等）都 pixel-perfect。
-##      zoom 过渡在整数边界处阶梯跳变而非连续，是像素游戏的惯常行为。
+##   2. DisplaySprite 在外层做缩放：effective_scale = _current_scale × zoom（保留浮点，不取整）
+##      整数 zoom（2.0/3.0）每个物理像素宽度相等，完全 pixel-perfect；
+##      非整数 zoom（1.3）有的物理像素宽 3px、有的宽 4px，但每个像素边缘绝对锐利
+##      （蔚蓝式 sharp non-integer zoom）。取整会在 zoom 插值过程中产生突变跳帧，故不做。
 ##   3. 每帧读 GameCamera2D.subpixel_offset（游戏像素残差），按
 ##      `-subpixel_offset × effective_scale` 平移 DisplaySprite，
 ##      恢复亚像素级平滑移动

@@ -9,7 +9,7 @@ script = ExtResource("3_main")
 
 [node name="PixelRenderer" parent="." unique_id=1741041668 instance=ExtResource("1_renderer")]
 level = ExtResource("2_0xm2m")
-atmosphere_color = Color(0.93, 0.9393333, 1, 1)
+atmosphere_color = Color(0.15, 0.16, 0.22, 1)
 brightness = 1.1
 vignette = 0.55
 vignette_color = Color(0.0150000295, 0, 0.18, 1)
