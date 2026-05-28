@@ -32,13 +32,14 @@ func _ready() -> void:
 	_template.hide()
 	var player := get_tree().get_first_node_in_group(&"player") as Player
 	if is_instance_valid(player):
-		_connect_player(player)
+		# deferred 确保玩家 _ready() 已执行，current_hp 已初始化为 max_hp
+		_connect_player.call_deferred(player)
 	get_tree().node_added.connect(_on_node_added)
 
 
 func _on_node_added(node: Node) -> void:
 	if node is Player:
-		_connect_player(node as Player)
+		_connect_player.call_deferred(node as Player)
 
 
 func _connect_player(player: Player) -> void:

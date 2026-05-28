@@ -2,6 +2,7 @@ extends Area2D
 
 @export var heal_amount: int = 2
 @export var radius: float = 8.0
+@export var respawn_time: float = 3.0
 
 
 func _ready() -> void:
@@ -24,4 +25,11 @@ func _on_body_entered(body: Node2D) -> void:
 	if player.current_hp >= player.max_hp:
 		return
 	player.heal(heal_amount)
-	queue_free()
+	hide()
+	set_deferred("monitoring", false)
+	get_tree().create_timer(respawn_time).timeout.connect(_respawn, CONNECT_ONE_SHOT)
+
+
+func _respawn() -> void:
+	show()
+	set_deferred("monitoring", true)

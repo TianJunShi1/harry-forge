@@ -64,6 +64,8 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	current_hp = max_hp
 	initialize_states()
+	# _ready 末尾发信号，确保所有已连接的监听者（HUD）都能拿到正确初值
+	hp_changed.emit(current_hp, max_hp)
 
 
 func _unhandled_input(event: InputEvent) -> void:
