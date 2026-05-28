@@ -31,7 +31,7 @@ var drop_through_timer : float = 0.0
 signal bounce_requested
 
 #region /// ❤️ 血量
-@export var max_hp: int = 3
+@export var max_hp: int = 6
 var current_hp: int
 
 signal hp_changed(current: int, maximum: int)

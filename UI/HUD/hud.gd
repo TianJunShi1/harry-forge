@@ -5,6 +5,20 @@ class_name HUD extends CanvasLayer
 ## 每颗心之间的间距（游戏像素）。
 @export var heart_spacing: int = 20
 
+# ── 动画名称常量 ──────────────────────────────────────────────────────────────
+# 静态状态
+const A_EMPTY        := &"empty"
+const A_HALF         := &"half"
+const A_FULL         := &"full"
+# 受伤过渡（非循环）
+const A_DMG_TO_HALF  := &"used_to_half"       # 满 → 半
+const A_DMG_TO_EMPTY := &"used_half_to_empty"  # 半 → 空
+# 回血过渡（非循环）
+const A_HEAL_TO_HALF := &"empty_to_half"       # 空 → 半
+const A_HEAL_TO_FULL := &"half_to_full"        # 半 → 满
+const A_HEAL_FULL    := &"reset"               # 空 → 满（整颗回复）
+# ─────────────────────────────────────────────────────────────────────────────
+
 @onready var _template: AnimatedSprite2D = $HeartTemplate
 
 var _hearts: Array[AnimatedSprite2D] = []
@@ -35,12 +49,14 @@ func _connect_player(player: Player) -> void:
 	_on_hp_changed(player.current_hp, player.max_hp)
 
 
-func _build_hearts(count: int) -> void:
+func _build_hearts(max_hp: int) -> void:
 	for h in _hearts:
 		if is_instance_valid(h):
 			h.queue_free()
 	_hearts.clear()
 	_prev_hp = -1
+	# 每颗心 = 2 HP 单位；显示心的数量 = max_hp / 2
+	var count := max_hp / 2
 	for i in count:
 		var h := _template.duplicate() as AnimatedSprite2D
 		h.show()
@@ -63,63 +79,75 @@ func _process(_delta: float) -> void:
 
 func _on_hp_changed(current: int, _maximum: int) -> void:
 	if _prev_hp < 0:
-		# 初始状态：无动画，直接设置
 		for i in _hearts.size():
-			_set_state(i, i < current)
+			_play_immediate(_hearts[i], _heart_state(current, i))
 		_prev_hp = current
 		return
 
-	if current < _prev_hp:
-		for i in range(current, _prev_hp):
-			_play_damage(_hearts[i])
-	elif current > _prev_hp:
-		for i in range(_prev_hp, current):
-			_play_heal(_hearts[i])
+	for i in _hearts.size():
+		var old_state := _heart_state(_prev_hp, i)
+		var new_state := _heart_state(current, i)
+		if old_state != new_state:
+			_play_transition(_hearts[i], old_state, new_state)
 
 	_prev_hp = current
 
 
-# 减血：used_to_half → used_half_to_empty → empty（任一动画不存在则直接跳到 empty）
-func _play_damage(heart: AnimatedSprite2D) -> void:
-	if not is_instance_valid(heart):
-		return
-	var frames := heart.sprite_frames
-	if frames == null or not frames.has_animation(&"used_to_half"):
-		heart.play(&"empty")
-		return
-	heart.play(&"used_to_half")
-	heart.animation_finished.connect(func() -> void:
-		if not is_instance_valid(heart):
-			return
-		if heart.sprite_frames.has_animation(&"used_half_to_empty"):
-			heart.play(&"used_half_to_empty")
-			heart.animation_finished.connect(func() -> void:
-				if is_instance_valid(heart):
-					heart.play(&"empty")
-			, CONNECT_ONE_SHOT)
-		else:
-			heart.play(&"empty")
-	, CONNECT_ONE_SHOT)
+## 根据 HP 值计算第 i 颗心的显示状态
+func _heart_state(hp: int, i: int) -> StringName:
+	var units := hp - i * 2
+	if units >= 2: return A_FULL
+	if units == 1: return A_HALF
+	return A_EMPTY
 
 
-# 回血：reset → full（动画不存在则直接跳到 full）
-func _play_heal(heart: AnimatedSprite2D) -> void:
+## 按 old→new 状态选择并串联动画
+func _play_transition(heart: AnimatedSprite2D, old: StringName, new_state: StringName) -> void:
 	if not is_instance_valid(heart):
 		return
-	var frames := heart.sprite_frames
-	if frames == null or not frames.has_animation(&"reset"):
-		heart.play(&"full")
+	match [old, new_state]:
+		# ── 受伤 ──
+		[A_FULL, A_HALF]:
+			_chain(heart, [A_DMG_TO_HALF, A_HALF])
+		[A_FULL, A_EMPTY]:
+			_chain(heart, [A_DMG_TO_HALF, A_DMG_TO_EMPTY, A_EMPTY])
+		[A_HALF, A_EMPTY]:
+			_chain(heart, [A_DMG_TO_EMPTY, A_EMPTY])
+		# ── 回血 ──
+		[A_EMPTY, A_HALF]:
+			_chain(heart, [A_HEAL_TO_HALF, A_HALF])
+		[A_HALF, A_FULL]:
+			_chain(heart, [A_HEAL_TO_FULL, A_FULL])
+		[A_EMPTY, A_FULL]:
+			_chain(heart, [A_HEAL_FULL, A_FULL])
+		# ── 兜底 ──
+		_:
+			_play_immediate(heart, new_state)
+
+
+## 串联播放动画列表：非循环动画播完后自动播下一个，最后一个直接 play（静态或循环）
+func _chain(heart: AnimatedSprite2D, anims: Array) -> void:
+	if anims.is_empty() or not is_instance_valid(heart):
 		return
-	heart.play(&"reset")
+	var first: StringName = anims[0]
+	var rest: Array = anims.slice(1)
+	if not _has_anim(heart, first):
+		# 跳过不存在的动画，继续处理剩余
+		_chain(heart, rest)
+		return
+	heart.play(first)
+	if rest.is_empty():
+		return
 	heart.animation_finished.connect(func() -> void:
 		if is_instance_valid(heart):
-			heart.play(&"full")
+			_chain(heart, rest)
 	, CONNECT_ONE_SHOT)
 
 
-func _set_state(idx: int, full: bool) -> void:
-	if not is_instance_valid(_hearts[idx]):
-		return
-	var anim := &"full" if full else &"empty"
-	if _hearts[idx].sprite_frames and _hearts[idx].sprite_frames.has_animation(anim):
-		_hearts[idx].play(anim)
+func _play_immediate(heart: AnimatedSprite2D, anim: StringName) -> void:
+	if is_instance_valid(heart) and _has_anim(heart, anim):
+		heart.play(anim)
+
+
+func _has_anim(heart: AnimatedSprite2D, anim: StringName) -> bool:
+	return heart.sprite_frames != null and heart.sprite_frames.has_animation(anim)
