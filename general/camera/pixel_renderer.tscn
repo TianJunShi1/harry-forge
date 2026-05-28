@@ -1,6 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://bpx5r3ndm7q4e"]
+[gd_scene format=3 uid="uid://bpx5r3ndm7q4e"]
 
-[ext_resource type="Script" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
+[ext_resource type="Script" uid="uid://d0c3vj8pllouh" path="res://general/scripts/pixel_renderer.gd" id="1_renderer"]
 
 [sub_resource type="Shader" id="Shader_fx"]
 code = "shader_type canvas_item;
@@ -31,24 +31,22 @@ shader_parameter/contrast = 1.05
 shader_parameter/vignette_strength = 0.6
 shader_parameter/vignette_color = Color(0, 0, 0, 1)
 
-[node name="PixelRenderer" type="Node2D"]
+[node name="PixelRenderer" type="Node2D" unique_id=1554184109]
 script = ExtResource("1_renderer")
 
-[node name="SubViewport" type="SubViewport" parent="."]
+[node name="SubViewport" type="SubViewport" parent="." unique_id=1273009898]
 disable_3d = true
-size = Vector2i(481, 271)
-render_target_update_mode = 4
 snap_2d_transforms_to_pixel = true
 snap_2d_vertices_to_pixel = true
-default_canvas_item_texture_filter = 0
+size = Vector2i(481, 271)
+render_target_update_mode = 4
 
-[node name="GlobalEffects" type="Node2D" parent="SubViewport"]
+[node name="GlobalEffects" type="Node2D" parent="SubViewport" unique_id=253692005]
 
-[node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects"]
-color = Color(1, 1, 1, 1)
+[node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects" unique_id=2037034235]
 
-[node name="DisplaySprite" type="Sprite2D" parent="."]
-material = SubResource("ShaderMaterial_fx")
+[node name="DisplaySprite" type="Sprite2D" parent="." unique_id=26075227]
 texture_filter = 1
+material = SubResource("ShaderMaterial_fx")
 position = Vector2(720, 405)
 scale = Vector2(3, 3)

@@ -1,30 +1,53 @@
 [gd_scene format=3 uid="uid://cx4mr7hud0001"]
 
 [ext_resource type="Script" uid="uid://cx4mr7bnq2hud" path="res://UI/HUD/hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" uid="uid://cv2nvjiw6blnx" path="res://UI/assets/Spritesheet.png" id="2_ing8j"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_te8l2"]
+atlas = ExtResource("2_ing8j")
+region = Rect2(320, 288, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qdh7y"]
+atlas = ExtResource("2_ing8j")
+region = Rect2(64, 160, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_radol"]
+atlas = ExtResource("2_ing8j")
+region = Rect2(192, 288, 32, 32)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_heart"]
 animations = [{
-"frames": [],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_te8l2")
+}],
 "loop": true,
 "name": &"empty",
 "speed": 8.0
 }, {
-"frames": [],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qdh7y")
+}],
 "loop": true,
 "name": &"full",
 "speed": 8.0
 }, {
-"frames": [],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_radol")
+}],
 "loop": true,
 "name": &"half",
 "speed": 8.0
 }]
 
-[node name="HUD" type="CanvasLayer"]
+[node name="HUD" type="CanvasLayer" unique_id=1479918111]
 layer = 10
 script = ExtResource("1_hud")
 
-[node name="HeartTemplate" type="AnimatedSprite2D" parent="."]
-position = Vector2(12, 12)
+[node name="HeartTemplate" type="AnimatedSprite2D" parent="." unique_id=1879411730]
 texture_filter = 1
+position = Vector2(12, 12)
 sprite_frames = SubResource("SpriteFrames_heart")
+animation = &"full"
