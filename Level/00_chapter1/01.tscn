@@ -83,7 +83,7 @@ position = Vector2(-271, -88)
 z_index = 2
 
 [node name="Player" parent="Entities" unique_id=330197014 instance=ExtResource("2_6rgpo")]
-position = Vector2(22, -26)
+position = Vector2(1210, -32)
 
 [node name="BouncePad" parent="Entities" unique_id=1258038184 instance=ExtResource("3_qj3k6")]
 position = Vector2(1004, 29)
