@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
 [ext_resource type="PackedScene" uid="uid://cx4mr7hud0001" path="res://UI/HUD/hud.tscn" id="9_hud"]
+[ext_resource type="PackedScene" uid="uid://dmgarea00001" path="res://Interactable/DamageArea/DamageArea.tscn" id="10_dmg"]
+[ext_resource type="PackedScene" uid="uid://healpickup0001" path="res://Interactable/HealPickup/HealPickup.tscn" id="11_heal"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -92,6 +94,12 @@ position = Vector2(570, 194)
 
 [node name="NpcSample" parent="Entities" unique_id=1724792271 instance=ExtResource("6_lw3vo")]
 position = Vector2(191, 0)
+
+[node name="TestDamageArea" parent="Entities" unique_id=111000001 instance=ExtResource("10_dmg")]
+position = Vector2(1290, -32)
+
+[node name="TestHealPickup" parent="Entities" unique_id=111000002 instance=ExtResource("11_heal")]
+position = Vector2(1130, -32)
 
 [node name="LevelFlow" type="Node2D" parent="." unique_id=829380553]
 
