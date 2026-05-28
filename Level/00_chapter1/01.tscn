@@ -9,7 +9,6 @@
 [ext_resource type="PackedScene" uid="uid://bmustsxwdgpm5" path="res://Npc/Npc_sample.tscn" id="6_lw3vo"]
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
-[ext_resource type="PackedScene" uid="uid://cx4mr7hud0001" path="res://UI/HUD/hud.tscn" id="9_hud"]
 [ext_resource type="PackedScene" uid="uid://dmgarea00001" path="res://Interactable/DamageArea/DamageArea.tscn" id="10_dmg"]
 [ext_resource type="PackedScene" uid="uid://healpickup0001" path="res://Interactable/HealPickup/HealPickup.tscn" id="11_heal"]
 
@@ -28,8 +27,6 @@ size = Vector2(2039.7073, 663.96436)
 size = Vector2(354.5, 200)
 
 [node name="01" type="Node2D" unique_id=159589538]
-
-[node name="HUD" parent="." unique_id=987654322 instance=ExtResource("9_hud")]
 
 [node name="GameCamera" parent="." unique_id=701613553 instance=ExtResource("5_cam01")]
 fall_catch_up_smoothing = 11.0

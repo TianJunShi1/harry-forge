@@ -1,30 +1,25 @@
 class_name HUD extends CanvasLayer
 
-## 心形 UI 间距（游戏像素）。与 HeartTemplate 的图像宽度对齐。
+## HeartTemplate 相对游戏显示区域左上角的偏移（游戏像素）。
+@export var heart_offset: Vector2 = Vector2(8, 8)
+## 每颗心之间的间距（游戏像素）。
 @export var heart_spacing: int = 10
 
 @onready var _template: AnimatedSprite2D = $HeartTemplate
 
 var _hearts: Array[AnimatedSprite2D] = []
+# HeartTemplate 在 hud.tscn 里设置的 position 作为游戏像素偏移基准
+var _template_game_pos: Vector2
 
 
 func _ready() -> void:
-	# PixelRenderer process_priority=1，HUD 必须晚于它运行才能读到当帧偏移量
 	process_priority = 2
+	_template_game_pos = _template.position
 	_template.hide()
 	var player := get_tree().get_first_node_in_group(&"player") as Player
 	if is_instance_valid(player):
 		_connect_player(player)
-	# 关卡切换后 player 重新入树时重连
 	get_tree().node_added.connect(_on_node_added)
-
-
-func _process(_delta: float) -> void:
-	# 抵消 PixelRenderer 对 DisplaySprite 施加的 subpixel 补偿位移，
-	# 使 HUD 在屏幕坐标系中保持静止，不随相机亚像素偏移而抖动。
-	var renderer := get_tree().get_first_node_in_group(&"pixel_renderer") as PixelRenderer
-	if is_instance_valid(renderer):
-		offset = renderer.get_display_game_offset()
 
 
 func _on_node_added(node: Node) -> void:
@@ -47,10 +42,23 @@ func _build_hearts(count: int) -> void:
 	_hearts.clear()
 	for i in count:
 		var h := _template.duplicate() as AnimatedSprite2D
-		h.position = Vector2(_template.position.x + i * heart_spacing, _template.position.y)
 		h.show()
 		add_child(h)
 		_hearts.append(h)
+
+
+func _process(_delta: float) -> void:
+	var renderer := get_tree().get_first_node_in_group(&"pixel_renderer") as PixelRenderer
+	if not is_instance_valid(renderer):
+		return
+	# HUD 在 SubViewport 外，使用屏幕坐标 + PixelRenderer 的游戏显示原点
+	var eff := renderer.get_effective_scale()
+	var origin := renderer.get_display_origin()
+	for i in _hearts.size():
+		if not is_instance_valid(_hearts[i]):
+			continue
+		_hearts[i].scale = Vector2(eff, eff)
+		_hearts[i].position = origin + Vector2(_template_game_pos.x + i * heart_spacing, _template_game_pos.y) * eff
 
 
 func _on_hp_changed(current: int, _maximum: int) -> void:

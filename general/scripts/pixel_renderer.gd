@@ -39,8 +39,6 @@ var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
 var _display_origin: Vector2
 var _prev_zoom: float = 1.0
-# 当前帧 DisplaySprite 在游戏像素坐标系下的偏移量，供 SubViewport 内的 UI 层做反向补偿
-var _current_game_offset: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -124,10 +122,10 @@ func world_to_screen(world_pos: Vector2) -> Vector2:
 	return _display_origin + vp_pos * eff - phys_offset
 
 
-## SubViewport 内 UI 层（CanvasLayer）用此值做反向偏移，抵消 DisplaySprite 的 subpixel 补偿，
-## 让 HUD 在屏幕上保持静止（不随相机 subpixel 偏移而抖动）。
-func get_display_game_offset() -> Vector2:
-	return _current_game_offset
+## 返回游戏内容区域左上角的屏幕坐标（不含 FadeRect 扩边）。
+## 供 SubViewport 外的 UI 层将控件对齐到游戏显示区域。
+func get_display_origin() -> Vector2:
+	return _display_origin
 
 
 ## 返回 DisplaySprite 当前在屏幕坐标系中的显示矩形（含 zoom 缩放）。
@@ -208,7 +206,6 @@ func _process(_delta: float) -> void:
 	_prev_zoom = zoom_factor
 	var phys_offset := raw_offset if zoom_transitioning else raw_offset.round()
 	_display.position = _screen_center - phys_offset
-	_current_game_offset = phys_offset / effective_scale
 	# 鼠标坐标映射所需的左上角，按 effective_scale 计算
 	var actual_size := Vector2(game_size + Vector2i.ONE)
 	_display_origin = _screen_center - actual_size * 0.5 * effective_scale
