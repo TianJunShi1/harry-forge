@@ -127,7 +127,8 @@ func world_to_screen(world_pos: Vector2) -> Vector2:
 func get_display_rect() -> Rect2:
 	# _display.position 含亚像素补偿（每帧最多飘移 1px），用 _screen_center 作为稳定中心。
 	# floor+ceil 消除浮点残差，再各扩 1px 确保覆盖边缘像素、不留微小切边。
-	var size := (Vector2(game_size) * _display.scale.x).ceil()
+	# SubViewport 贴图实际尺寸是 game_size + 1px slack；用实际尺寸才能在高倍缩放下完整覆盖
+	var size := (Vector2(game_size + Vector2i.ONE) * _display.scale.x).ceil()
 	var origin := (_screen_center - size * 0.5).floor()
 	return Rect2(origin - Vector2.ONE, size + Vector2(2.0, 2.0))
 
