@@ -15,10 +15,6 @@ region = Rect2(64, 160, 32, 32)
 atlas = ExtResource("2_ing8j")
 region = Rect2(192, 288, 32, 32)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_h1lrf"]
-atlas = ExtResource("2_ing8j")
-region = Rect2(64, 352, 32, 32)
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_4h73s"]
 atlas = ExtResource("2_ing8j")
 region = Rect2(128, 352, 32, 32)
@@ -115,9 +111,6 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_h1lrf")
-}, {
-"duration": 1.0,
 "texture": SubResource("AtlasTexture_4h73s")
 }, {
 "duration": 1.0,
@@ -201,4 +194,6 @@ script = ExtResource("1_hud")
 texture_filter = 1
 position = Vector2(12, 12)
 sprite_frames = SubResource("SpriteFrames_heart")
-animation = &"used_to_half"
+animation = &"reset"
+frame = 4
+frame_progress = 1.0
