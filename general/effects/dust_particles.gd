@@ -8,6 +8,8 @@ class_name DustParticles extends GPUParticles2D
 		queue_redraw()
 @export var particle_count: int = 80
 @export var particle_lifetime: float = 10.0
+## 生命时长随机系数（0=完全一致，1=最大随机），实际生命 ≈ lifetime×(1-randomness×rand)
+@export_range(0.0, 1.0, 0.05) var lifetime_randomness: float = 0.4
 ## 粒子最小/最大漂移速度（游戏像素/秒）
 @export var speed_min: float = 4.0
 @export var speed_max: float = 14.0
@@ -33,7 +35,7 @@ func _ready() -> void:
 
 	amount = particle_count
 	lifetime = particle_lifetime
-	# 预填充：进场时屏幕内已有粒子，不会从空白开始
+	lifetime_randomness = lifetime_randomness
 	preprocess = particle_lifetime
 	local_coords = false
 	# 粒子均匀持续发射，不爆发
