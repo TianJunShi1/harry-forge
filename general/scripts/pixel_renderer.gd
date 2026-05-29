@@ -34,7 +34,7 @@ var _camera: GameCamera2D
 # child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
 var _camera_search_pending: bool = false
 var _current_level: Node
-var _current_scale: int = 1
+var _current_scale: float = 1.0
 var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
 var _display_origin: Vector2
@@ -175,13 +175,12 @@ func _scan_for_camera() -> void:
 
 func _recalculate_layout() -> void:
 	var window_size := Vector2(get_viewport().get_visible_rect().size)
-	# 同时考虑横竖向，取小的；最小 1 防止超小窗口出现 0 倍
-	var scale_y := int(floor(window_size.y / float(game_size.y)))
-	var scale_x := int(floor(window_size.x / float(game_size.x)))
-	_current_scale = maxi(1, mini(scale_x, scale_y))
+	# 浮点非整数缩放：取横竖两向比例的较小值，使游戏画面完整填满窗口短边，无黑边
+	var scale_y := window_size.y / float(game_size.y)
+	var scale_x := window_size.x / float(game_size.x)
+	_current_scale = maxf(1.0, minf(scale_x, scale_y))
 	_screen_center = window_size * 0.5
 	_display.position = _screen_center
-	# DisplaySprite.scale 在 _process 里每帧根据 zoom 动态设置；这里仅给个初始值
 	_display.scale = Vector2(_current_scale, _current_scale)
 
 
