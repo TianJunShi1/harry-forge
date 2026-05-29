@@ -10,7 +10,8 @@
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
 [ext_resource type="PackedScene" uid="uid://dmgarea00001" path="res://Interactable/DamageArea/DamageArea.tscn" id="10_dmg"]
-[ext_resource type="PackedScene" uid="uid://healpickup0001" path="res://Interactable/HealPickup/HealPickup.tscn" id="11_heal"]
+[ext_resource type="PackedScene" uid="uid://cnbqwtk8phq1m" path="res://Interactable/HealPickup/HealPickup.tscn" id="11_heal"]
+[ext_resource type="PackedScene" path="res://general/effects/dust_particles.tscn" id="12_opyri"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -119,6 +120,8 @@ spawn_facing = 1
 position = Vector2(1545, 310)
 spawn_id = &"from_chapter2.2"
 spawn_facing = 1
+
+[node name="DustParticles" parent="." unique_id=1122910146 instance=ExtResource("12_opyri")]
 
 [editable path="CameraZones/CameraBounds"]
 [editable path="CameraZones/CameraBounds2"]
