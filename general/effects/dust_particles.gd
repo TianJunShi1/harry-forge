@@ -1,11 +1,11 @@
+@tool
 class_name DustParticles extends GPUParticles2D
 
-## 全屏环境灰尘飘散效果。
-## 挂在 GameCamera2D 下，发射区域 = 游戏画面（480×270），
-## local_coords=false 让粒子在世界空间漂移，镜头移动不影响飘散感。
-
 ## 粒子发射区域大小（游戏像素），建议覆盖整个关卡或区域范围
-@export var emit_size: Vector2 = Vector2(2000, 600)
+@export var emit_size: Vector2 = Vector2(2000, 600) :
+	set(v):
+		emit_size = v
+		queue_redraw()
 @export var particle_count: int = 80
 @export var particle_lifetime: float = 10.0
 ## 粒子最小/最大漂移速度（游戏像素/秒）
@@ -19,7 +19,15 @@ class_name DustParticles extends GPUParticles2D
 @export var max_alpha: float = 0.45
 
 
+func _draw() -> void:
+	var half := emit_size * 0.5
+	draw_rect(Rect2(-half, emit_size), Color(0.4, 0.9, 1.0, 0.25), true)
+	draw_rect(Rect2(-half, emit_size), Color(0.4, 0.9, 1.0, 0.8), false)
+
+
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	_setup_texture()
 	_setup_material()
 
