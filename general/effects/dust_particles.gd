@@ -4,7 +4,8 @@ class_name DustParticles extends GPUParticles2D
 ## 挂在 GameCamera2D 下，发射区域 = 游戏画面（480×270），
 ## local_coords=false 让粒子在世界空间漂移，镜头移动不影响飘散感。
 
-@export var game_size: Vector2 = Vector2(480, 270)
+## 粒子发射区域大小（游戏像素），建议覆盖整个关卡或区域范围
+@export var emit_size: Vector2 = Vector2(2000, 600)
 @export var particle_count: int = 80
 @export var particle_lifetime: float = 10.0
 ## 粒子最小/最大漂移速度（游戏像素/秒）
@@ -44,7 +45,7 @@ func _setup_material() -> void:
 
 	# 发射区域：以节点为中心的 480×270 盒子，覆盖整个画面
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	mat.emission_box_extents = Vector3(game_size.x * 0.5, game_size.y * 0.5, 1.0)
+	mat.emission_box_extents = Vector3(emit_size.x * 0.5, emit_size.y * 0.5, 1.0)
 
 	# 漂移方向与散布
 	mat.direction = drift_direction.normalized()
