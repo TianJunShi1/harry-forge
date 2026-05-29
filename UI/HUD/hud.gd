@@ -85,13 +85,26 @@ func _on_hp_changed(current: int, _maximum: int) -> void:
 		_prev_hp = current
 		return
 
+	# 收集所有需要变化的心，按顺序串行播放
+	var pending: Array = []
 	for i in _hearts.size():
 		var old_state := _heart_state(_prev_hp, i)
 		var new_state := _heart_state(current, i)
 		if old_state != new_state:
-			_play_transition(_hearts[i], old_state, new_state)
+			pending.append([_hearts[i], old_state, new_state])
 
 	_prev_hp = current
+	_play_transitions_sequential(pending)
+
+
+func _play_transitions_sequential(pending: Array) -> void:
+	if pending.is_empty():
+		return
+	var item: Array = pending[0]
+	var rest: Array = pending.slice(1)
+	_play_transition(item[0], item[1], item[2], func() -> void:
+		_play_transitions_sequential(rest)
+	)
 
 
 ## 根据 HP 值计算第 i 颗心的显示状态
@@ -102,46 +115,49 @@ func _heart_state(hp: int, i: int) -> StringName:
 	return A_EMPTY
 
 
-## 按 old→new 状态选择并串联动画
-func _play_transition(heart: AnimatedSprite2D, old: StringName, new_state: StringName) -> void:
+## 按 old→new 状态选择并串联动画；on_done 在过渡动画结束后回调
+func _play_transition(heart: AnimatedSprite2D, old: StringName, new_state: StringName, on_done: Callable = Callable()) -> void:
 	if not is_instance_valid(heart):
+		if on_done.is_valid(): on_done.call()
 		return
 	match [old, new_state]:
 		# ── 受伤 ──
 		[A_FULL, A_HALF]:
-			_chain(heart, [A_DMG_TO_HALF, A_HALF])
+			_chain(heart, [A_DMG_TO_HALF, A_HALF], on_done)
 		[A_FULL, A_EMPTY]:
-			_chain(heart, [A_DMG_TO_HALF, A_DMG_TO_EMPTY, A_EMPTY])
+			_chain(heart, [A_DMG_TO_HALF, A_DMG_TO_EMPTY, A_EMPTY], on_done)
 		[A_HALF, A_EMPTY]:
-			_chain(heart, [A_DMG_TO_EMPTY, A_EMPTY])
+			_chain(heart, [A_DMG_TO_EMPTY, A_EMPTY], on_done)
 		# ── 回血 ──
 		[A_EMPTY, A_HALF]:
-			_chain(heart, [A_HEAL_TO_HALF, A_HALF])
+			_chain(heart, [A_HEAL_TO_HALF, A_HALF], on_done)
 		[A_HALF, A_FULL]:
-			_chain(heart, [A_HEAL_TO_FULL, A_FULL])
+			_chain(heart, [A_HEAL_TO_FULL, A_FULL], on_done)
 		[A_EMPTY, A_FULL]:
-			_chain(heart, [A_HEAL_FULL, A_FULL])
+			_chain(heart, [A_HEAL_FULL, A_FULL], on_done)
 		# ── 兜底 ──
 		_:
 			_play_immediate(heart, new_state)
+			if on_done.is_valid(): on_done.call()
 
 
-## 串联播放动画列表：非循环动画播完后自动播下一个，最后一个直接 play（静态或循环）
-func _chain(heart: AnimatedSprite2D, anims: Array) -> void:
+## 串联播放动画列表；到达最后一个（静态）动画时触发 on_done，表示过渡结束
+func _chain(heart: AnimatedSprite2D, anims: Array, on_done: Callable = Callable()) -> void:
 	if anims.is_empty() or not is_instance_valid(heart):
+		if on_done.is_valid(): on_done.call()
 		return
 	var first: StringName = anims[0]
 	var rest: Array = anims.slice(1)
 	if not _has_anim(heart, first):
-		# 跳过不存在的动画，继续处理剩余
-		_chain(heart, rest)
+		_chain(heart, rest, on_done)
 		return
 	heart.play(first)
 	if rest.is_empty():
+		if on_done.is_valid(): on_done.call()
 		return
 	heart.animation_finished.connect(func() -> void:
 		if is_instance_valid(heart):
-			_chain(heart, rest)
+			_chain(heart, rest, on_done)
 	, CONNECT_ONE_SHOT)
 
 
