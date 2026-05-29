@@ -1,6 +1,3 @@
-[gd_scene load_steps=2 format=3 uid="uid://dust_particles"]
-
-[ext_resource type="Script" path="res://general/effects/dust_particles.gd" id="1_dust"]
+[gd_scene format=3 uid="uid://dust_particles"]
 
 [node name="DustParticles" type="GPUParticles2D"]
-script = ExtResource("1_dust")
