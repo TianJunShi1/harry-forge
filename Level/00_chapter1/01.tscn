@@ -44,6 +44,7 @@ spread = 180.0
 initial_velocity_min = 1.0
 initial_velocity_max = 3.0
 gravity = Vector3(0, 0.1, 0)
+color = Color(1, 0.9375, 0.85, 1)
 color_ramp = SubResource("GradientTexture1D_i64li")
 turbulence_enabled = true
 turbulence_noise_strength = 0.1
@@ -149,6 +150,8 @@ spawn_facing = 1
 
 [node name="DustParticles" parent="." unique_id=1122910146 instance=ExtResource("12_opyri")]
 position = Vector2(595, -5)
+amount = 100
+visibility_rect = Rect2(-1009.9649, -340.53903, 2016.6312, 697.6327)
 process_material = SubResource("ParticleProcessMaterial_b0qan")
 
 [editable path="CameraZones/CameraBounds"]
