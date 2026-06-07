@@ -11,7 +11,7 @@
 [ext_resource type="PackedScene" uid="uid://l6ibdstqceki" path="res://general/level_transition/spawn_point.tscn" id="8_spawn"]
 [ext_resource type="PackedScene" uid="uid://dmgarea00001" path="res://Interactable/DamageArea/DamageArea.tscn" id="10_dmg"]
 [ext_resource type="PackedScene" uid="uid://cnbqwtk8phq1m" path="res://Interactable/HealPickup/HealPickup.tscn" id="11_heal"]
-[ext_resource type="PackedScene" path="res://general/effects/dust_particles.tscn" id="12_opyri"]
+[ext_resource type="PackedScene" uid="uid://b48exilm4fp4p" path="res://general/effects/dust_particles.tscn" id="12_opyri"]
 
 [sub_resource type="Gradient" id="Gradient_e5u0v"]
 colors = PackedColorArray(0.0713, 0.17709997, 0.23, 1, 0.21600002, 0.312, 0.36, 1)
@@ -26,6 +26,32 @@ size = Vector2(2039.7073, 663.96436)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hp1sv"]
 size = Vector2(354.5, 200)
+
+[sub_resource type="Gradient" id="Gradient_opyri"]
+offsets = PackedFloat32Array(0, 0.4486692, 1)
+colors = PackedColorArray(0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_i64li"]
+gradient = SubResource("Gradient_opyri")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_b0qan"]
+lifetime_randomness = 0.4
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(1000, 350, 1)
+direction = Vector3(0, 0, 0)
+spread = 180.0
+initial_velocity_min = 1.0
+initial_velocity_max = 3.0
+gravity = Vector3(0, 0.1, 0)
+color_ramp = SubResource("GradientTexture1D_i64li")
+turbulence_enabled = true
+turbulence_noise_strength = 0.1
+turbulence_noise_speed_random = 0.1
+turbulence_influence_min = 0.010000001
+turbulence_influence_max = 0.05
+turbulence_initial_displacement_min = 50.000004
+turbulence_initial_displacement_max = 80.0
 
 [node name="01" type="Node2D" unique_id=159589538]
 
@@ -122,6 +148,8 @@ spawn_id = &"from_chapter2.2"
 spawn_facing = 1
 
 [node name="DustParticles" parent="." unique_id=1122910146 instance=ExtResource("12_opyri")]
+position = Vector2(595, -5)
+process_material = SubResource("ParticleProcessMaterial_b0qan")
 
 [editable path="CameraZones/CameraBounds"]
 [editable path="CameraZones/CameraBounds2"]
