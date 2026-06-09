@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://3wpfik1dxy0i" path="res://Interactable/Torch/Torch.tscn" id="3_nbwsf"]
 [ext_resource type="PackedScene" uid="uid://bc5woagptill0" path="res://Interactable/BouncePad/BouncePad.tscn" id="3_qj3k6"]
 [ext_resource type="PackedScene" uid="uid://ccog6gubguhwb" path="res://general/camera/camera_bounds.tscn" id="4_hp1sv"]
+[ext_resource type="TileSet" uid="uid://c4kqnq20vfa2h" path="res://Level/tileset/Test_2.tres" id="4_i64li"]
 [ext_resource type="PackedScene" uid="uid://bm3dap7qk2xt5" path="res://general/camera/game_camera.tscn" id="5_cam01"]
 [ext_resource type="PackedScene" uid="uid://bmustsxwdgpm5" path="res://Npc/Npc_sample.tscn" id="6_lw3vo"]
 [ext_resource type="PackedScene" uid="uid://bj5m4npn23phg" path="res://general/level_transition/Level_transition.tscn" id="7_trans"]
@@ -76,6 +77,10 @@ tile_set = ExtResource("1_qyxhl")
 
 [node name="TorchLight" parent="World" unique_id=741852963 instance=ExtResource("3_nbwsf")]
 position = Vector2(1313, -128)
+
+[node name="TileMapLayer2" type="TileMapLayer" parent="World" unique_id=739896819]
+tile_map_data = PackedByteArray("AABkABMAAAAFAAQAAAA=")
+tile_set = ExtResource("4_i64li")
 
 [node name="CameraZones" type="Node2D" parent="." unique_id=2005047653]
 
