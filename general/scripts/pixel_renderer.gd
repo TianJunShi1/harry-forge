@@ -6,13 +6,13 @@ class_name PixelRenderer extends Node2D
 ##   1. SubViewport 内部永远 1:1 渲染（GameCamera2D.zoom 恒为 ONE），
 ##      内层 Camera2D 把 global_position floor 到整数像素，确保 SubViewport
 ##      输出绝对 pixel-perfect——无亚像素采样错位、无 shimmer
-##   2. DisplaySprite 在外层做缩放：effective_scale = _current_scale × zoom（保留浮点，不取整）
-##      整数 zoom（2.0/3.0）每个物理像素宽度相等，完全 pixel-perfect；
-##      非整数 zoom（1.3）有的物理像素宽 3px、有的宽 4px，但每个像素边缘绝对锐利
-##      （蔚蓝式 sharp non-integer zoom）。取整会在 zoom 插值过程中产生突变跳帧，故不做。
+##   2. DisplaySprite 在外层做缩放：effective_scale = _current_scale × zoom（保留浮点，不取整）。
+##      DisplaySprite 用 Linear filter + sharp-bilinear shader（pixel_renderer.tscn）上采样：
+##      纹素内部平涂，仅纹素接缝处做 1 物理像素宽的线性过渡。非整数 effective_scale
+##      （如 2.84×）下像素大小看似不均也不会 shimmer，边缘仍锐利（蔚蓝式 sharp scaling）。
 ##   3. 每帧读 GameCamera2D.subpixel_offset（游戏像素残差），按
-##      `-subpixel_offset × effective_scale` 平移 DisplaySprite，
-##      恢复亚像素级平滑移动
+##      `-subpixel_offset × effective_scale`（浮点，不取整）平移 DisplaySprite，
+##      恢复完全平滑的亚像素级移动。sharp-bilinear 让接缝过渡连续，故不再需要 round()。
 ##   4. 窗口尺寸变化时自动重算最大整数基础缩放倍数（floor(window/game)），
 ##      画面始终居中，未覆盖的区域为黑边
 
@@ -38,7 +38,6 @@ var _current_scale: float = 1.0
 var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
 var _display_origin: Vector2
-var _prev_zoom: float = 1.0
 
 
 func _ready() -> void:
@@ -189,21 +188,15 @@ func _process(_delta: float) -> void:
 	# 这里只读，找不到就跳过本帧渲染调整
 	if not is_instance_valid(_camera):
 		return
-	# 蔚蓝架构：缩放在外层做，NEAREST filter 保证每个游戏像素绝对锐利。
-	# effective_scale 保持 float：非整数 zoom（1.2/1.4）时部分物理像素宽 4px、
-	# 部分宽 5px，但像素边缘仍完全清晰（蔚蓝式 sharp non-integer zoom）。
-	# 不做 roundf：整数取整会在 zoom 插值途中触发突变（如 4×→5×），
-	# 在 CameraZone 过渡动画中产生可见的一帧跳变。
-	# maxf(1.0, ...) 防止极小 zoom 导致 DisplaySprite 缩到 0。
+	# 缩放在外层 DisplaySprite 做，sharp-bilinear shader（见 pixel_renderer.tscn）
+	# 在纹素接缝处做 1 物理像素宽的线性过渡，非整数 effective_scale 下像素大小看似
+	# 不均也不会 shimmer，边缘仍锐利。maxf(1.0, ...) 防止极小 zoom 把 sprite 缩到 0。
 	var zoom_factor := _camera.displayed_zoom.x
 	var effective_scale := maxf(1.0, float(_current_scale) * zoom_factor)
 	_display.scale = Vector2(effective_scale, effective_scale)
-	# subpixel 补偿：zoom 过渡期间 round() 会因两个浮点同时变化产生 1px 随机跳变；
-	# 过渡中放弃取整（接受极微的亚像素渗漏），zoom 稳定后恢复 pixel-perfect 对齐。
-	var raw_offset := _camera.subpixel_offset * effective_scale
-	var zoom_transitioning := absf(zoom_factor - _prev_zoom) > 0.0005
-	_prev_zoom = zoom_factor
-	var phys_offset := raw_offset if zoom_transitioning else raw_offset.round()
+	# subpixel 补偿不再 round()：sharp-bilinear 已让接缝过渡连续，保留浮点偏移
+	# 才能得到完全平滑的亚像素相机平移（消除旧的 1px stepping 抖动）。
+	var phys_offset := _camera.subpixel_offset * effective_scale
 	_display.position = _screen_center - phys_offset
 	# 鼠标坐标映射所需的左上角，按 effective_scale 计算
 	var actual_size := Vector2(game_size + Vector2i.ONE)

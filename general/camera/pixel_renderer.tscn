@@ -9,8 +9,22 @@ uniform float brightness : hint_range(0.5, 2.0) = 1.0;
 uniform float contrast : hint_range(0.5, 2.0) = 1.0;
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.6;
 uniform vec4 vignette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+
+// 蔚蓝式 sharp-bilinear（抗锯齿最近邻）上采样：
+// 纹素内部平涂保持绝对锐利，仅在纹素接缝处用 1 物理像素宽的线性过渡。
+// 非整数缩放（如 2.84×）下消除像素大小不均导致的 shimmer，
+// 同时让亚像素相机平移完全平滑。要求 texture_filter = Linear。
+vec2 sharp_uv(vec2 uv, vec2 tex_size) {
+	vec2 px = uv * tex_size;          // 转到纹素坐标
+	vec2 seam = floor(px + 0.5);      // 最近的纹素接缝
+	vec2 dudv = fwidth(px);           // 单个屏幕像素跨越多少纹素
+	px = seam + clamp((px - seam) / dudv, -0.5, 0.5);
+	return px / tex_size;
+}
+
 void fragment() {
-	vec4 col = texture(TEXTURE, UV);
+	vec2 tex_size = vec2(textureSize(TEXTURE, 0));
+	vec4 col = texture(TEXTURE, sharp_uv(UV, tex_size));
 	col.rgb *= brightness;
 	col.rgb = (col.rgb - 0.5) * contrast + 0.5;
 
@@ -46,7 +60,7 @@ render_target_update_mode = 4
 [node name="CanvasModulate" type="CanvasModulate" parent="SubViewport/GlobalEffects" unique_id=2037034235]
 
 [node name="DisplaySprite" type="Sprite2D" parent="." unique_id=26075227]
-texture_filter = 1
+texture_filter = 2
 material = SubResource("ShaderMaterial_fx")
 position = Vector2(720, 405)
 scale = Vector2(3, 3)
