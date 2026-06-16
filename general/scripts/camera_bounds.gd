@@ -11,7 +11,7 @@ class_name CameraZone extends Area2D
 ## 三种典型用法：
 ##   • 普通房间：mode = FOLLOW，bounds_source = AUTO_FROM_COLLISION
 ##   • 隐藏房间：mode = LOCK_TO_CENTER，bounds_source = CUSTOM_FROM_MARKER（提前触发）
-##   • Boss 战 / 大场景：zoom_override = Vector2(0.7, 0.7)（看到更多）
+##   • Boss 战 / 聚焦房间：hidden_room_zoom > 1（外层显示放大，不改变 Camera 世界视野）
 
 enum FollowMode {
 	FOLLOW,           # 摄像机跟随玩家（典型房间）
@@ -91,17 +91,49 @@ func _ready() -> void:
 func _resolve_camera() -> void:
 	if camera_path != NodePath(""):
 		_camera = get_node_or_null(camera_path) as GameCamera2D
-	if _camera == null:
-		# 在场景树里找 game_camera 组
-		for n in get_tree().get_nodes_in_group("game_camera"):
-			if n is GameCamera2D:
-				_camera = n
-				break
-	if _camera == null:
-		push_warning("CameraZone：找不到 GameCamera2D。请把 GameCamera 加入 'game_camera' 组，或显式指定 camera_path。")
+		if is_instance_valid(_camera):
+			return
+	# 优先在当前关卡子树内找，避免切关期间拿到旧关卡的 Camera（即使它尚未被释放）
+	var level_root := _get_level_root()
+	if level_root != null:
+		_camera = _find_camera_in_subtree(level_root)
+		if is_instance_valid(_camera):
+			return
+	# 子树找不到时全局兜底（直接运行单关卡、不经 SubViewport 的场景）
+	for n in get_tree().get_nodes_in_group("game_camera"):
+		if n is GameCamera2D and is_instance_valid(n):
+			_camera = n
+			return
+	push_warning("CameraZone：找不到 GameCamera2D。请把 GameCamera 加入 'game_camera' 组，或显式指定 camera_path。")
+
+
+# 沿 parent 链向上，找到直接挂在 SubViewport 下的节点（即关卡根节点）
+func _get_level_root() -> Node:
+	var node := get_parent()
+	while node != null:
+		if node.get_parent() is SubViewport:
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _find_camera_in_subtree(root: Node) -> GameCamera2D:
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is GameCamera2D and n.is_in_group("game_camera"):
+			return n
+		for child in n.get_children():
+			stack.append(child)
+	return null
 
 
 func _apply_if_player_already_inside() -> void:
+	# 清除可能因切关而失效的悬挂引用；重试一次兜底加载时序问题
+	if not is_instance_valid(_camera):
+		_camera = null
+	if _camera == null:
+		_resolve_camera()
 	if _camera == null:
 		return
 	for body in get_overlapping_bodies():
@@ -119,6 +151,9 @@ func _on_body_entered(body: Node) -> void:
 func _on_body_exited(body: Node) -> void:
 	if not (body is Player):
 		return
+	# 先清悬挂引用，再 resolve，确保 pop 发给当前关卡的 Camera
+	if not is_instance_valid(_camera):
+		_camera = null
 	if _camera == null:
 		_resolve_camera()
 	if _camera:
@@ -126,7 +161,9 @@ func _on_body_exited(body: Node) -> void:
 
 
 func _push_to_camera() -> void:
-	# PixelRenderer 延迟加载关卡时 GameCamera 可能比 CameraZone 晚 ready，重试一次
+	# 先清悬挂引用（旧 Camera 已释放），再 resolve；两层防御同时覆盖"已释放"和"仍存活但是旧的"
+	if not is_instance_valid(_camera):
+		_camera = null
 	if _camera == null:
 		_resolve_camera()
 	if _camera == null:

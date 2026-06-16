@@ -20,6 +20,13 @@ class_name GameCamera2D extends Camera2D
 @export var follow_target: Node2D
 ## 跟随平滑度，值越大反应越快（典型范围 2~8）
 @export_range(0.1, 20.0, 0.1) var follow_smoothing: float = 3.0
+## 玩家下落时 y 轴的"追赶"平滑度（仅在 velocity.y > 阈值时生效，沿正常 follow_smoothing 线性过渡到此值，
+## 解决跳起来后高速坠落相机跟不上的问题；不影响上升 / 水平 / 静止时的手感）
+@export_range(0.1, 30.0, 0.1) var fall_catch_up_smoothing: float = 9.0
+## 启动 fall catch-up 的下落速度阈值（像素/秒）。velocity.y 超过此值开始混入 fall_catch_up_smoothing
+@export_range(0.0, 600.0, 1.0) var fall_catch_up_velocity_threshold: float = 120.0
+## 完全切换到 fall_catch_up_smoothing 所需的"超出阈值"速度跨度（像素/秒），用于线性过渡避免突变
+@export_range(1.0, 800.0, 1.0) var fall_catch_up_ramp: float = 200.0
 
 @export_group("Look Ahead")
 ## 是否启用前视偏移
@@ -45,6 +52,12 @@ class_name GameCamera2D extends Camera2D
 @export_range(0.1, 20.0, 0.1) var look_y_engage_speed: float = 1.5
 ## 松键后回中速度（建议比 engage 快，让回弹干脆）
 @export_range(0.1, 20.0, 0.1) var look_y_return_speed: float = 3.0
+
+@export_group("Dead Zone")
+## 死区宽度（像素）。X 轴：目标在此范围内水平移动相机不跟随。0 = 禁用
+@export_range(0.0, 200.0, 1.0) var dead_zone_width: float = 0.0
+## 死区高度（像素）。Y 轴：目标在此范围内垂直移动相机不跟随。0 = 禁用
+@export_range(0.0, 200.0, 1.0) var dead_zone_height: float = 0.0
 
 @export_group("Bounds")
 ## 软边界宽度（像素）。0 = 硬 clamp，>0 = 靠近边界时减速
@@ -134,7 +147,7 @@ func _ready() -> void:
 	if follow_target == null:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
-		_smoothed_position = follow_target.global_position
+		_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
 		var snapped := _smoothed_position.floor()
 		subpixel_offset = _smoothed_position - snapped
 		global_position = snapped
@@ -172,7 +185,7 @@ func _physics_process(delta: float) -> void:
 
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
-		_smoothed_position = _target_lock_center if _target_lock_to_center else follow_target.global_position
+		_smoothed_position = _target_lock_center if _target_lock_to_center else (follow_target.global_position + Vector2(0, vertical_offset))
 		var snapped := _smoothed_position.floor()
 		subpixel_offset = _smoothed_position - snapped
 		global_position = snapped
@@ -197,7 +210,14 @@ func _physics_process(delta: float) -> void:
 		# exponential lerp 会自然地把相机拉回玩家，不需要额外 tween
 		var target_pos := _compute_desired_position(delta)
 		var t := 1.0 - exp(-follow_smoothing * delta)
-		_smoothed_position = _smoothed_position.lerp(target_pos, t)
+		# 下落追赶：仅当玩家正向下高速运动时，单独提升 y 轴 smoothing；
+		# 阈值内或上升时退化为 follow_smoothing，水平 / 静止 / 跳起手感完全不变
+		var smoothing_y := _resolve_fall_catch_up_smoothing()
+		var ty := t if smoothing_y == follow_smoothing else 1.0 - exp(-smoothing_y * delta)
+		_smoothed_position = Vector2(
+			lerpf(_smoothed_position.x, target_pos.x, t),
+			lerpf(_smoothed_position.y, target_pos.y, ty)
+		)
 
 	# 硬边界安全网（target 已被软限过，这里几乎不触发）
 	# lock 过渡期间跳过：_displayed_bounds 同步在收缩，clamp 会打断 smoothstep 曲线
@@ -310,7 +330,7 @@ func assign_follow_target(target: Node2D, snap: bool = false) -> void:
 func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
-	_smoothed_position = follow_target.global_position
+	_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
 	var snapped := _smoothed_position.floor()
 	subpixel_offset = _smoothed_position - snapped
 	global_position = snapped
@@ -432,11 +452,13 @@ func _compute_desired_position(delta: float) -> Vector2:
 	target_pos.y += vertical_offset
 
 	# 视线偏移：玩家静止地面按 W/S 时，镜头向上/下平移预览
+	# 注意：只更新 _look_y_value，不在此处叠加到 target_pos——
+	# 必须等软边界 clamp 完成后再加，否则 look_y 偏移会被软区阻力抵消，
+	# 导致靠近边界时两个方向都无法观察。
 	if look_y_enabled:
 		var y_intent := _read_look_y_intent()
 		var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
 		_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
-		target_pos.y += _look_y_value * look_y_distance
 
 	# 前视偏移
 	if look_ahead_enabled:
@@ -458,11 +480,62 @@ func _compute_desired_position(delta: float) -> Vector2:
 				total_weight += w
 		target_pos = weighted / total_weight
 
-	# 软边界减速
+	# 死区：目标点超出以 _smoothed_position 为中心的矩形时，
+	# 相机追到死区边缘而非直接追目标中心，保持传统平台跳跃的矩形死区手感。
+	# 两者均为 0（默认）时条件不进入，零运行时开销。
+	if dead_zone_width > 0.0 or dead_zone_height > 0.0:
+		var dead_zone_target := target_pos
+		if dead_zone_width > 0.0:
+			var half_w := dead_zone_width * 0.5
+			var dx := target_pos.x - _smoothed_position.x
+			if dx > half_w:
+				dead_zone_target.x = target_pos.x - half_w
+			elif dx < -half_w:
+				dead_zone_target.x = target_pos.x + half_w
+			else:
+				dead_zone_target.x = _smoothed_position.x
+		if dead_zone_height > 0.0:
+			var half_h := dead_zone_height * 0.5
+			var dy := target_pos.y - _smoothed_position.y
+			# 竖向速度超阈值时（跳跃/快速下落）绕过 Y 死区：
+			# 死区期间相机向上漂移，落地后玩家回到原点却仍在死区内，
+			# 导致相机永久卡在高处；绕过后由 fall_catch_up_smoothing 正常接管。
+			var _cb := follow_target as CharacterBody2D
+			var vy_large := _cb != null and absf(_cb.velocity.y) >= fall_catch_up_velocity_threshold
+			if not vy_large:
+				if dy > half_h:
+					dead_zone_target.y = target_pos.y - half_h
+				elif dy < -half_h:
+					dead_zone_target.y = target_pos.y + half_h
+				else:
+					dead_zone_target.y = _smoothed_position.y
+		target_pos = dead_zone_target
+
+	# 软边界减速（基础跟随位置，不含 look_y）
 	if _target_has_bounds:
 		target_pos = _soft_clamp_to_bounds(target_pos, _displayed_bounds, displayed_zoom)
 
+	# look_y 在软边界之后叠加：朝边界方向由硬边界（_physics_process 末尾）兜底，
+	# 朝自由方向则完全不受软区阻力影响，靠近任意边界时仍能往反方向观察。
+	if look_y_enabled:
+		target_pos.y += _look_y_value * look_y_distance
+
 	return target_pos
+
+
+## 根据玩家下落速度返回 y 轴 follow smoothing：
+##   • velocity.y ≤ threshold（包括上升 / 水平 / 缓慢下落）：返回 follow_smoothing，手感不变
+##   • velocity.y ≥ threshold + ramp（高速坠落）：返回 fall_catch_up_smoothing，相机紧追
+##   • 之间线性过渡，避免突变
+func _resolve_fall_catch_up_smoothing() -> float:
+	var _cb2 := follow_target as CharacterBody2D
+	if not is_instance_valid(follow_target) or _cb2 == null:
+		return follow_smoothing
+	var vy: float = _cb2.velocity.y
+	if vy <= fall_catch_up_velocity_threshold:
+		return follow_smoothing
+	var ramp := clampf((vy - fall_catch_up_velocity_threshold) / maxf(fall_catch_up_ramp, EPSILON), 0.0, 1.0)
+	return lerpf(follow_smoothing, fall_catch_up_smoothing, ramp)
 
 
 func _read_look_y_intent() -> float:
@@ -474,8 +547,9 @@ func _read_look_y_intent() -> float:
 func _read_facing_intent() -> float:
 	if follow_target.has_method("get_camera_facing_intent"):
 		return follow_target.get_camera_facing_intent()
-	if "velocity" in follow_target:
-		var vx: float = follow_target.velocity.x
+	var _cb3 := follow_target as CharacterBody2D
+	if _cb3 != null:
+		var vx: float = _cb3.velocity.x
 		if absf(vx) < look_ahead_velocity_threshold:
 			return 0.0
 		return signf(vx)
@@ -567,6 +641,12 @@ func _draw() -> void:
 	if _target_has_bounds:
 		var local_rect := Rect2(_displayed_bounds.position - global_position, _displayed_bounds.size)
 		draw_rect(local_rect, Color(1, 1, 0, 0.6), false, 2.0)
+	if dead_zone_width > 0.0 or dead_zone_height > 0.0:
+		var dz_rect := Rect2(
+			subpixel_offset - Vector2(dead_zone_width, dead_zone_height) * 0.5,
+			Vector2(dead_zone_width, dead_zone_height)
+		)
+		draw_rect(dz_rect, Color(0.2, 0.8, 1.0, 0.5), false, 1.5)
 	for fp in _focus_points.values():
 		var local_pos: Vector2 = fp["position"] - global_position
 		draw_circle(local_pos, 6.0, Color(0.4, 1.0, 0.4, fp["weight_current"]))

@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bc5woagptill0"]
 
 [ext_resource type="Script" uid="uid://c2oufdvwwjpwg" path="res://Interactable/BouncePad/Scripts/bounce_pad.gd" id="1_64u65"]
+[ext_resource type="PackedScene" uid="uid://de7x4hhhhowhn" path="res://general/ui/prompt_hint.tscn" id="2_prompt"]
 
 [sub_resource type="Gradient" id="Gradient_rupst"]
 offsets = PackedFloat32Array(0)
@@ -16,24 +17,40 @@ size = Vector2(64, 64)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1obpa"]
 size = Vector2(32, 12)
 
-[node name="BouncePad" type="Area2D" unique_id=1258038184]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_prox"]
+size = Vector2(240, 160)
+
+[node name="BouncePad" type="Area2D" unique_id=1190047078]
 collision_layer = 8
 script = ExtResource("1_64u65")
 
-[node name="BouncePadPlatform" type="Sprite2D" parent="." unique_id=1791703314]
+[node name="BouncePadPlatform" type="Sprite2D" parent="." unique_id=581089464]
 scale = Vector2(0.5, 0.2)
 texture = SubResource("GradientTexture2D_1obpa")
 
-[node name="StaticBody2D" type="StaticBody2D" parent="BouncePadPlatform" unique_id=1694432264]
+[node name="StaticBody2D" type="StaticBody2D" parent="BouncePadPlatform" unique_id=1042705252]
 collision_layer = 8
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncePadPlatform/StaticBody2D" unique_id=403001761]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncePadPlatform/StaticBody2D" unique_id=81857986]
 position = Vector2(0, -9.179115e-06)
 shape = SubResource("RectangleShape2D_64u65")
 
-[node name="jiance" type="CollisionShape2D" parent="." unique_id=1968392780]
+[node name="jiance" type="CollisionShape2D" parent="." unique_id=51713954]
 position = Vector2(0, -1)
 shape = SubResource("RectangleShape2D_1obpa")
 
+[node name="ProximityArea" type="Area2D" parent="." unique_id=502198774]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ProximityArea" unique_id=1526955611]
+position = Vector2(2.5, -34.5)
+shape = SubResource("RectangleShape2D_prox")
+
+[node name="PromptHint" parent="." unique_id=794224392 instance=ExtResource("2_prompt")]
+position = Vector2(0, -21)
+scale = Vector2(0.5, 0.5)
+
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="body_entered" from="ProximityArea" to="." method="_on_proximity_entered"]
+[connection signal="body_exited" from="ProximityArea" to="." method="_on_proximity_exited"]

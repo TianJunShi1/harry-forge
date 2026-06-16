@@ -180,6 +180,95 @@ GameCamera 同样用 `node_added` signal 监听 `"player"` 组节点加入树（
 | 3 | OneWayPlatform |
 | 4 | BouncePad |
 
+## 关卡切换系统
+
+`LevelManager`（autoload）是切换关卡的**唯一入口**。`LevelTransition` 触发器位于关卡内，`SpawnPoint` 标识落点。
+
+### 架构
+
+```
+main.tscn
+├─ PixelRenderer              [现有]
+│  └─ SubViewport → <当前关卡>
+└─ TransitionLayer (CanvasLayer, layer=100)
+   └─ FadeRect (ColorRect, 全屏黑, alpha 由 LevelManager tween)
+
+Autoload:
+  LevelManager  fade / load_level / spawn / snap_camera / grace 期编排
+  GameState     跨场景持久数据（flags / clues / inventory）
+```
+
+### 使用步骤
+
+1. 在**源关卡**里实例化 `res://general/level_transition/Level_transition.tscn`，设置：
+   - `target_level`: 目标 `.tscn`
+   - `target_spawn_id`: 目标关卡中 SpawnPoint 的 `spawn_id`
+2. 在**目标关卡**里实例化 `res://general/level_transition/spawn_point.tscn`，设置：
+   - `spawn_id`: 与源触发器的 `target_spawn_id` 对应
+   - `spawn_facing`: 落地朝向（0=保留 / 1=向左 / 2=向右）
+
+### 代码触发（剧情序列用）
+
+```gdscript
+LevelManager.transition_to(load("res://Level/01_chapter2/02.tscn"), &"from_event")
+```
+
+### 跨场景持久数据
+
+```gdscript
+GameState.set_flag(&"unlocked_door_a", true)
+GameState.collect_clue(&"clue_torn_letter")
+if GameState.has_clue(&"clue_torn_letter"):
+    ...
+```
+
+### 容错与 grace 期
+
+- `LevelTransition` 在 grace 期（默认 0.3 s）内不触发，避免落点 bounce-back
+- `spawn_id` 找不到会退回第一个 `SpawnPoint` + push_warning；都没有则玩家留在编辑器默认位置
+- `target_level == null` 时 `LevelTransition` 拒触发 + push_warning
+
+### SpawnPoint 参数
+
+| 参数 | 说明 |
+|------|------|
+| `spawn_id` | 标识符（与 `LevelTransition.target_spawn_id` 对应） |
+| `spawn_facing` | 0=保留朝向，1=向左（flip_h=true），2=向右（flip_h=false） |
+
+### LevelTransition 参数
+
+| 参数 | 说明 |
+|------|------|
+| `target_level_path` | 目标关卡路径（`res://Level/.../xx.tscn`） |
+| `target_spawn_id` | 目标关卡里 SpawnPoint 的 spawn_id |
+| `ignore_grace` | true=即使在 grace 期内也触发（慎用） |
+
+### SpawnPoint 参数（完整）
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `spawn_id` | `"default"` | 标识符（与 `LevelTransition.target_spawn_id` 对应） |
+| `spawn_facing` | 0 | 0=保留朝向，1=向左，2=向右 |
+| `snap_to_ground` | true | 向下射线找最近地面自动贴地，设计者无需精确对齐像素 |
+| `snap_search_distance` | 256 px | 向下搜索的最大距离 |
+| `player_half_height` | 16 px | 玩家碰撞盒下沿到原点的距离，需与 CollisionShape2D 半高一致 |
+
+### 关卡设计最佳实践
+
+**SpawnPoint 摆放**
+- 默认 `snap_to_ground = true`：可把 SpawnPoint 摆在地面上方任意高度（建议 ≤ 100 px），系统自动射线落地
+- 关闭 snap 时需手工把 y 调整到 `地面顶部 y − player_half_height（默认 16）`
+
+**LevelTransition 摆放**
+- 触发器宽度建议 ≥ 32 px，高度盖住玩家可能经过的整段地形（含跳跃高度）
+- 触发器中心距对应 SpawnPoint 至少 64 px，避免落点与触发器重叠（grace 期 0.3 s 是兜底，设计上不应依赖它）
+- 双向切换：A→B 触发器在 A 的右边，B 的 SpawnPoint 在 B 的左边；反之亦然
+
+**朝向**
+- `spawn_facing = 1`（向左）用于"玩家从右侧进入"
+- `spawn_facing = 2`（向右）用于"玩家从左侧进入"
+- 不确定时填 0（保留上一关朝向快照）
+
 ## 代码约定
 
 - **注释语言**：中文（解释 WHY，不解释 WHAT）

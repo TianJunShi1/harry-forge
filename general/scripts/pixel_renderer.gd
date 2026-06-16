@@ -6,13 +6,13 @@ class_name PixelRenderer extends Node2D
 ##   1. SubViewport 内部永远 1:1 渲染（GameCamera2D.zoom 恒为 ONE），
 ##      内层 Camera2D 把 global_position floor 到整数像素，确保 SubViewport
 ##      输出绝对 pixel-perfect——无亚像素采样错位、无 shimmer
-##   2. DisplaySprite 在外层做缩放：scale = _current_scale × camera.displayed_zoom
-##      整数 zoom（2.0/3.0）→ 物理像素完美整数倍；非整数 zoom（1.3 等）→
-##      NEAREST 采样下物理像素宽度不均（有 3px 有 4px）但每个像素绝对锐利
-##      这就是 Celeste 等顶级像素游戏的"sharp non-integer zoom"做法
+##   2. DisplaySprite 在外层做缩放：effective_scale = _current_scale × zoom（保留浮点，不取整）。
+##      DisplaySprite 用 Linear filter + sharp-bilinear shader（pixel_renderer.tscn）上采样：
+##      纹素内部平涂，仅纹素接缝处做 1 物理像素宽的线性过渡。非整数 effective_scale
+##      （如 2.84×）下像素大小看似不均也不会 shimmer，边缘仍锐利（蔚蓝式 sharp scaling）。
 ##   3. 每帧读 GameCamera2D.subpixel_offset（游戏像素残差），按
-##      `-subpixel_offset × _current_scale × zoom_factor` 平移 DisplaySprite，
-##      恢复亚像素级平滑移动
+##      `-subpixel_offset × effective_scale`（浮点，不取整）平移 DisplaySprite，
+##      恢复完全平滑的亚像素级移动。sharp-bilinear 让接缝过渡连续，故不再需要 round()。
 ##   4. 窗口尺寸变化时自动重算最大整数基础缩放倍数（floor(window/game)），
 ##      画面始终居中，未覆盖的区域为黑边
 
@@ -23,7 +23,8 @@ class_name PixelRenderer extends Node2D
 @export var atmosphere_color: Color = Color(1, 1, 1, 1)
 @export_range(0.5, 2.0, 0.05) var brightness: float = 1.2
 @export_range(0.5, 2.0, 0.05) var contrast: float = 1.05
-@export_range(0.0, 6.0, 0.05) var vignette: float = 1.5
+@export_range(0.0, 1.0, 0.05) var vignette: float = 0.6
+@export var vignette_color: Color = Color(0, 0, 0, 1)
 
 @onready var _sub_viewport: SubViewport = $SubViewport
 @onready var _display: Sprite2D = $DisplaySprite
@@ -33,7 +34,7 @@ var _camera: GameCamera2D
 # child_entered_tree 监听是否已挂上；signal 驱动取代每帧轮询
 var _camera_search_pending: bool = false
 var _current_level: Node
-var _current_scale: int = 1
+var _current_scale: float = 1.0
 var _screen_center: Vector2
 # DisplaySprite 在屏幕坐标系下占据矩形的左上角，用于鼠标坐标反向映射
 var _display_origin: Vector2
@@ -42,6 +43,7 @@ var _display_origin: Vector2
 func _ready() -> void:
 	# 必须在 GameCamera（priority 0）之后处理，否则读到上一帧的 subpixel_offset 导致抖动
 	process_priority = 1
+	add_to_group(&"pixel_renderer")
 	_sub_viewport.size = game_size + Vector2i.ONE
 	_display.texture = _sub_viewport.get_texture()
 	_apply_atmosphere_exports()
@@ -60,6 +62,7 @@ func _apply_atmosphere_exports() -> void:
 	mat.set_shader_parameter("brightness", brightness)
 	mat.set_shader_parameter("contrast", contrast)
 	mat.set_shader_parameter("vignette_strength", vignette)
+	mat.set_shader_parameter("vignette_color", vignette_color)
 
 
 # ============================================================================
@@ -75,10 +78,14 @@ func load_level(packed: PackedScene) -> Node:
 	unload_level()
 	_current_level = packed.instantiate()
 	_sub_viewport.add_child(_current_level)
-	# add_child 同步把整棵子树入树，立刻扫一次；扫不到（异步加 camera）就交给 signal 兜底
+	# add_child 同步把整棵子树入树，立刻扫一次；扫不到（异步加 camera）就交给 signal 兜底。
+	# 同步找到后必须调 _end_camera_search()：unload_level() 已连接 child_entered_tree，
+	# 若不断开，信号永久挂着，后续每次 SubViewport 增删节点都会触发无效 deferred scan。
 	_camera = _find_camera_in_subviewport()
 	if _camera == null:
 		_begin_camera_search()
+	else:
+		_end_camera_search()
 	return _current_level
 
 
@@ -93,6 +100,42 @@ func unload_level() -> void:
 
 func get_current_level() -> Node:
 	return _current_level
+
+
+## 当前有效显示倍数（基础整数缩放 × zoom）。
+func get_effective_scale() -> float:
+	if not is_instance_valid(_camera):
+		return float(_current_scale)
+	return maxf(1.0, float(_current_scale) * _camera.displayed_zoom.x)
+
+
+## 将游戏世界坐标转换为屏幕坐标，供 CanvasLayer 内的 UI 元素跟随世界对象。
+## 包含 subpixel_offset 补偿，与 DisplaySprite 的亚像素平移保持完全同步。
+func world_to_screen(world_pos: Vector2) -> Vector2:
+	if not is_instance_valid(_camera):
+		return _screen_center
+	var cam_center := _camera.get_screen_center_position()
+	var eff := get_effective_scale()
+	var vp_pos := world_pos - cam_center + Vector2(game_size) * 0.5
+	var phys_offset := (_camera.subpixel_offset * eff).round()
+	return _display_origin + vp_pos * eff - phys_offset
+
+
+## 返回游戏内容区域左上角的屏幕坐标（不含 FadeRect 扩边）。
+## 供 SubViewport 外的 UI 层将控件对齐到游戏显示区域。
+func get_display_origin() -> Vector2:
+	return _display_origin
+
+
+## 返回 DisplaySprite 当前在屏幕坐标系中的显示矩形（含 zoom 缩放）。
+## 供 LevelManager / main.gd 将 FadeRect 对齐到游戏内容区域。
+func get_display_rect() -> Rect2:
+	# _display.position 含亚像素补偿（每帧最多飘移 1px），用 _screen_center 作为稳定中心。
+	# floor+ceil 消除浮点残差，再各扩 1px 确保覆盖边缘像素、不留微小切边。
+	# SubViewport 贴图实际尺寸是 game_size + 1px slack；用实际尺寸才能在高倍缩放下完整覆盖
+	var size := (Vector2(game_size + Vector2i.ONE) * _display.scale.x).ceil()
+	var origin := (_screen_center - size * 0.5).floor()
+	return Rect2(origin - Vector2.ONE, size + Vector2(2.0, 2.0))
 
 
 # ============================================================================
@@ -131,13 +174,12 @@ func _scan_for_camera() -> void:
 
 func _recalculate_layout() -> void:
 	var window_size := Vector2(get_viewport().get_visible_rect().size)
-	# 同时考虑横竖向，取小的；最小 1 防止超小窗口出现 0 倍
-	var scale_y := int(floor(window_size.y / float(game_size.y)))
-	var scale_x := int(floor(window_size.x / float(game_size.x)))
-	_current_scale = maxi(1, mini(scale_x, scale_y))
+	# 浮点非整数缩放：取横竖两向比例的较小值，使游戏画面完整填满窗口短边，无黑边
+	var scale_y := window_size.y / float(game_size.y)
+	var scale_x := window_size.x / float(game_size.x)
+	_current_scale = maxf(1.0, minf(scale_x, scale_y))
 	_screen_center = window_size * 0.5
 	_display.position = _screen_center
-	# DisplaySprite.scale 在 _process 里每帧根据 zoom 动态设置；这里仅给个初始值
 	_display.scale = Vector2(_current_scale, _current_scale)
 
 
@@ -146,15 +188,15 @@ func _process(_delta: float) -> void:
 	# 这里只读，找不到就跳过本帧渲染调整
 	if not is_instance_valid(_camera):
 		return
-	# 蔚蓝架构：缩放在外层做。effective_scale = 基础整数 × 显示 zoom。
-	# 整数 zoom 时 effective_scale 仍为整数 → 物理像素完美对齐；
-	# 非整数 zoom 时 effective_scale 非整数 → NEAREST 采样下物理像素宽度不均（3/4 px 交错）
-	# 但每个像素仍绝对锐利（无 LINEAR 羽化）。
+	# 缩放在外层 DisplaySprite 做，sharp-bilinear shader（见 pixel_renderer.tscn）
+	# 在纹素接缝处做 1 物理像素宽的线性过渡，非整数 effective_scale 下像素大小看似
+	# 不均也不会 shimmer，边缘仍锐利。maxf(1.0, ...) 防止极小 zoom 把 sprite 缩到 0。
 	var zoom_factor := _camera.displayed_zoom.x
-	var effective_scale := float(_current_scale) * zoom_factor
+	var effective_scale := maxf(1.0, float(_current_scale) * zoom_factor)
 	_display.scale = Vector2(effective_scale, effective_scale)
-	# subpixel 补偿：1 game pixel = effective_scale physical pixels，残差按此换算
-	var phys_offset := (_camera.subpixel_offset * effective_scale).round()
+	# subpixel 补偿不再 round()：sharp-bilinear 已让接缝过渡连续，保留浮点偏移
+	# 才能得到完全平滑的亚像素相机平移（消除旧的 1px stepping 抖动）。
+	var phys_offset := _camera.subpixel_offset * effective_scale
 	_display.position = _screen_center - phys_offset
 	# 鼠标坐标映射所需的左上角，按 effective_scale 计算
 	var actual_size := Vector2(game_size + Vector2i.ONE)
@@ -183,53 +225,6 @@ func _transform_input(event: InputEvent) -> InputEvent:
 	return event
 
 
-# ============================================================================
-# 大气效果 API
-# ============================================================================
-
-func set_atmosphere_color(color: Color, duration: float = 0.0) -> void:
-	if duration <= 0.0:
-		_canvas_modulate.color = color
-		return
-	create_tween().tween_property(_canvas_modulate, "color", color, duration)
-
-
-func set_brightness(value: float, duration: float = 0.0) -> void:
-	var mat := _display.material as ShaderMaterial
-	if duration <= 0.0:
-		mat.set_shader_parameter("brightness", value)
-		return
-	var from: float = mat.get_shader_parameter("brightness")
-	create_tween().tween_method(
-		func(v: float) -> void: mat.set_shader_parameter("brightness", v),
-		from, value, duration
-	)
-
-
-func set_contrast(value: float, duration: float = 0.0) -> void:
-	var mat := _display.material as ShaderMaterial
-	if duration <= 0.0:
-		mat.set_shader_parameter("contrast", value)
-		return
-	var from: float = mat.get_shader_parameter("contrast")
-	create_tween().tween_method(
-		func(v: float) -> void: mat.set_shader_parameter("contrast", v),
-		from, value, duration
-	)
-
-
-func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
-	var mat := _display.material as ShaderMaterial
-	if duration <= 0.0:
-		mat.set_shader_parameter("vignette_strength", strength)
-		return
-	var from: float = mat.get_shader_parameter("vignette_strength")
-	create_tween().tween_method(
-		func(v: float) -> void: mat.set_shader_parameter("vignette_strength", v),
-		from, strength, duration
-	)
-
-
 func _find_camera_in_subviewport() -> GameCamera2D:
 	# 遍历 SubViewport 子树查找 game_camera 组成员
 	var stack: Array = [_sub_viewport]
@@ -240,3 +235,72 @@ func _find_camera_in_subviewport() -> GameCamera2D:
 		for child in node.get_children():
 			stack.append(child)
 	return null
+
+
+# ============================================================================
+# 大气效果 API（场景切换 / 白天黑夜过渡用）
+# ============================================================================
+
+## 设置全局大气颜色。duration > 0 时平滑过渡，= 0 时立即生效。
+func set_atmosphere_color(color: Color, duration: float = 0.0) -> void:
+	if duration <= 0.0:
+		_canvas_modulate.color = color
+		return
+	var tw := create_tween()
+	tw.tween_property(_canvas_modulate, "color", color, duration)
+
+
+## 设置暗角强度（0=无暗角，6=极强）。duration > 0 时平滑过渡。
+func set_vignette_color(color: Color, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("vignette_color", color)
+		return
+	var from: Color = mat.get_shader_parameter("vignette_color")
+	create_tween().tween_method(
+		func(v: Color) -> void: mat.set_shader_parameter("vignette_color", v),
+		from, color, duration
+	)
+
+
+func set_vignette_strength(strength: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if mat == null:
+		return
+	if duration <= 0.0:
+		mat.set_shader_parameter("vignette_strength", strength)
+		return
+	var from: float = mat.get_shader_parameter("vignette_strength")
+	var tw := create_tween()
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("vignette_strength", v),
+		from, strength, duration
+	)
+
+
+## 设置全局亮度（1.0=默认，>1 更亮，<1 更暗）。duration > 0 时平滑过渡。
+func set_brightness(value: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("brightness", value)
+		return
+	var from: float = mat.get_shader_parameter("brightness")
+	var tw := create_tween()
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("brightness", v),
+		from, value, duration
+	)
+
+
+## 设置全局对比度（1.0=默认，>1 更强烈）。duration > 0 时平滑过渡。
+func set_contrast(value: float, duration: float = 0.0) -> void:
+	var mat := _display.material as ShaderMaterial
+	if duration <= 0.0:
+		mat.set_shader_parameter("contrast", value)
+		return
+	var from: float = mat.get_shader_parameter("contrast")
+	var tw := create_tween()
+	tw.tween_method(
+		func(v: float) -> void: mat.set_shader_parameter("contrast", v),
+		from, value, duration
+	)

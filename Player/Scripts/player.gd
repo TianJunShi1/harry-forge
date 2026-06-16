@@ -30,6 +30,23 @@ var drop_through_timer : float = 0.0
 ## 当玩家被弹跳板抛起时发出。Jump 状态监听此 signal 以避免被普通跳跃逻辑覆盖速度。
 signal bounce_requested
 
+#region /// ❤️ 血量
+@export var max_hp: int = 6
+var current_hp: int
+
+signal hp_changed(current: int, maximum: int)
+
+
+func take_damage(amount: int = 1) -> void:
+	current_hp = maxi(current_hp - amount, 0)
+	hp_changed.emit(current_hp, max_hp)
+
+
+func heal(amount: int = 1) -> void:
+	current_hp = mini(current_hp + amount, max_hp)
+	hp_changed.emit(current_hp, max_hp)
+#endregion
+
 #region /// 🎨 Animation
 @onready var anim : AnimatedSprite2D = $AnimatedSprite2D
 #endregion
@@ -39,14 +56,16 @@ signal bounce_requested
 
 
 func _enter_tree() -> void:
-	# _enter_tree 가 _ready 보다 먼저 실행되므로, 같은 씬에서 로드되는
-	# GameCamera._ready() 가 get_first_node_in_group("player") 를 호출할 때
-	# 이미 그룹에 등록된 상태여야 카메라가 즉시 플레이어를 찾을 수 있다.
+	# _enter_tree 先于 _ready 执行，确保同场景的 GameCamera._ready() 调用
+	# get_first_node_in_group("player") 时玩家已在组内，摄像机可立即找到目标。
 	add_to_group("player")
 
 
 func _ready() -> void:
+	current_hp = max_hp
 	initialize_states()
+	# _ready 末尾发信号，确保所有已连接的监听者（HUD）都能拿到正确初值
+	hp_changed.emit(current_hp, max_hp)
 
 
 func _unhandled_input(event: InputEvent) -> void:

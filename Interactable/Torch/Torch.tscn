@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://3wpfik1dxy0i"]
+
+[ext_resource type="Script" uid="uid://ceigah5f72jon" path="res://Interactable/Torch/torch.gd" id="1_torch"]
+[ext_resource type="Texture2D" uid="uid://b578ogxwiqekh" path="res://Interactable/Torch/glow_ani/glow1.png" id="2_e53er"]
+
+[node name="Torch" type="Node2D" unique_id=1280816038]
+script = ExtResource("1_torch")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1428936291]
+texture_filter = 1
+energy = 1.4
+shadow_enabled = true
+shadow_color = Color(0.08, 0.02, 0.15, 0.6)
+shadow_filter = 1
+texture = ExtResource("2_e53er")
