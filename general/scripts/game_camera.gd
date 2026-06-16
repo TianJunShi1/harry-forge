@@ -303,10 +303,10 @@ func remove_focus_point(focus_id: int, blend_out: float = 0.5) -> void:
 ## PixelRenderer 在窗口尺寸变化时调用，更新基础缩放并触发 zone 重算。
 func set_base_zoom(base: Vector2) -> void:
 	default_zoom = base
-	if not _initialized:
-		displayed_zoom = base
-		zoom = base
 	_recompute_active_zone()
+	# base zoom 变化来自窗口尺寸，不需要动画——立即 snap，避免启动时缓慢缩放漂移
+	displayed_zoom = _target_zoom
+	zoom = _target_zoom
 
 
 ## 显式指定 follow target（剧情/co-op/boss 镜头切换用）。
