@@ -107,13 +107,14 @@ func _resolve_camera() -> void:
 	push_warning("CameraZone：找不到 GameCamera2D。请把 GameCamera 加入 'game_camera' 组，或显式指定 camera_path。")
 
 
-# 沿 parent 链向上，找到直接挂在 SubViewport 下的节点（即关卡根节点）
+# 沿 parent 链向上，找到直接挂在 WorldRoot（"world_root" 组）或 SubViewport 下的节点（即关卡根节点）
 func _get_level_root() -> Node:
 	var node := get_parent()
 	while node != null:
-		if node.get_parent() is SubViewport:
+		var parent := node.get_parent()
+		if parent is SubViewport or (parent != null and parent.is_in_group(&"world_root")):
 			return node
-		node = node.get_parent()
+		node = parent
 	return null
 
 
@@ -185,13 +186,15 @@ func _compute_bounds() -> Rect2:
 	match bounds_source:
 		BoundsSource.CUSTOM_FROM_MARKER:
 			var center: Vector2 = bounds_center_marker.global_position if bounds_center_marker else global_position
-			# 边界至少不能比游戏视口还小（防止 lock 模式下出现奇怪的居中）。
-			# 减 Vector2.ONE 抵消 PixelRenderer 给 SubViewport 加的 1px slack，与
-			# game_camera.gd:_get_camera_half_view 的算法保持一致
-			var viewport_size := get_viewport_rect().size - Vector2.ONE
+			# 边界至少不能比游戏基础视野小（防止 lock 模式下出现奇怪的居中）。
+			# canvas-items 架构下游戏基础视野从 PixelRenderer.game_size 读取。
+			var game_viewport_size := Vector2(480, 270)
+			var renderers := get_tree().get_nodes_in_group(&"pixel_renderer")
+			if not renderers.is_empty():
+				game_viewport_size = Vector2((renderers[0] as PixelRenderer).game_size)
 			var final_size := Vector2(
-				maxf(custom_bounds_size.x, viewport_size.x),
-				maxf(custom_bounds_size.y, viewport_size.y)
+				maxf(custom_bounds_size.x, game_viewport_size.x),
+				maxf(custom_bounds_size.y, game_viewport_size.y)
 			)
 			return Rect2(center - final_size * 0.5, final_size)
 		_:

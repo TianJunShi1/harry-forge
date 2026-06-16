@@ -125,9 +125,7 @@ var _look_ahead_value: float = 0.0
 var _look_y_value: float = 0.0
 var _initialized: bool = false
 
-## 像素完美渲染：浮点位置中无法被 floor() 表达的小数残差。
-## 由 PixelRenderer 在屏幕级以 -subpixel_offset * scale 平移 DisplaySprite 来恢复亚像素平滑感。
-var subpixel_offset: Vector2 = Vector2.ZERO
+## canvas-items 架构下相机直接使用浮点位置，亚像素平滑由原生渲染保证，无需 subpixel_offset。
 
 # 临时聚焦点：id -> { position, weight_target, weight_current, fade_speed }
 var _focus_points: Dictionary = {}
@@ -142,15 +140,12 @@ func _ready() -> void:
 	make_current()
 	_target_zoom = default_zoom
 	displayed_zoom = default_zoom
-	# 关键：Camera2D.zoom 永远保持 ONE，缩放在外层 PixelRenderer 用 DisplaySprite.scale 实现。
-	zoom = Vector2.ONE
+	zoom = default_zoom
 	if follow_target == null:
 		follow_target = get_tree().get_first_node_in_group("player") as Node2D
 	if follow_target:
 		_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
-		var snapped := _smoothed_position.floor()
-		subpixel_offset = _smoothed_position - snapped
-		global_position = snapped
+		global_position = _smoothed_position
 		_initialized = true
 	else:
 		_begin_player_search()
@@ -186,9 +181,7 @@ func _physics_process(delta: float) -> void:
 	if not _initialized:
 		# 场景加载时若当前应处于锁定状态，直接快照到锁定中心
 		_smoothed_position = _target_lock_center if _target_lock_to_center else (follow_target.global_position + Vector2(0, vertical_offset))
-		var snapped := _smoothed_position.floor()
-		subpixel_offset = _smoothed_position - snapped
-		global_position = snapped
+		global_position = _smoothed_position
 		_initialized = true
 
 	_advance_bounds_transition(delta)
@@ -225,24 +218,20 @@ func _physics_process(delta: float) -> void:
 	if _target_has_bounds and not _lock_transition_active and _bounds_tween_t >= 1.0:
 		_smoothed_position = _hard_clamp_to_bounds(_smoothed_position, _displayed_bounds, displayed_zoom)
 
-	# 像素完美：snap 到整数像素，把残余小数交给 PixelRenderer 在屏幕级补偿
-	var snapped := _smoothed_position.floor()
-	subpixel_offset = _smoothed_position - snapped
-	global_position = snapped
+	global_position = _smoothed_position
 
 
 func _process(delta: float) -> void:
 	# Zoom 指数平滑跑在 display rate（_process），消除 60Hz 步进感。
-	# zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
 	if _initialized:
 		var dist := displayed_zoom.distance_to(_target_zoom)
 		if dist < EPSILON:
 			displayed_zoom = _target_zoom
 		else:
-			# 主驱动：指数平滑（先快后慢）；兜底：最小线性速度，消除指数爬行在终点产生的顿挫感
 			var step := maxf(dist * (1.0 - exp(-zoom_smoothing * delta)), zoom_smoothing * 0.02 * delta)
 			displayed_zoom = displayed_zoom.move_toward(_target_zoom, step)
-		# 关键：不写回 Camera2D.zoom；PixelRenderer 用 DisplaySprite.scale 在外层应用。
+		# canvas-items 架构：直接写回 Camera2D.zoom，实现真实缩放
+		zoom = displayed_zoom
 	if draw_debug:
 		queue_redraw()
 
@@ -311,6 +300,15 @@ func remove_focus_point(focus_id: int, blend_out: float = 0.5) -> void:
 	_focus_points[focus_id]["fade_speed"] = 1.0 / maxf(blend_out, EPSILON)
 
 
+## PixelRenderer 在窗口尺寸变化时调用，更新基础缩放并触发 zone 重算。
+func set_base_zoom(base: Vector2) -> void:
+	default_zoom = base
+	if not _initialized:
+		displayed_zoom = base
+		zoom = base
+	_recompute_active_zone()
+
+
 ## 显式指定 follow target（剧情/co-op/boss 镜头切换用）。
 ## 调用后会断开 node_added 自动发现监听，外部全权负责 follow_target 生命周期。
 ## snap=true 时立刻瞬移到目标位置，false 时让 follow_smoothing 平滑过渡。
@@ -331,13 +329,12 @@ func snap_to_target() -> void:
 	if not is_instance_valid(follow_target):
 		return
 	_smoothed_position = follow_target.global_position + Vector2(0, vertical_offset)
-	var snapped := _smoothed_position.floor()
-	subpixel_offset = _smoothed_position - snapped
-	global_position = snapped
+	global_position = _smoothed_position
 	_lock_transition_active = false
 	_lock_tween_t = 1.0
 	_bounds_tween_t = 1.0
 	displayed_zoom = _target_zoom
+	zoom = _target_zoom
 	_displayed_bounds = _target_bounds
 	_look_ahead_value = 0.0
 	_look_y_value = 0.0
@@ -372,7 +369,9 @@ func _recompute_active_zone() -> void:
 
 	_begin_bounds_transition(bounds, has_bounds, duration)
 	_begin_lock_transition(lock_to_center, lock_center, duration)
-	_target_zoom = zoom_override if zoom_override != Vector2.ZERO else default_zoom
+	# zoom_override 是相对于 default_zoom 的倍数（1.0=不变，2.0=放大 2×）。
+	# 乘以 default_zoom 得到在 canvas-items 下写入 Camera2D.zoom 的绝对值。
+	_target_zoom = zoom_override * default_zoom if zoom_override != Vector2.ZERO else default_zoom
 
 
 func _begin_bounds_transition(new_bounds: Rect2, has_bounds: bool, duration: float) -> void:
@@ -572,13 +571,11 @@ func _update_focus_points(delta: float) -> void:
 # 内部：边界数学
 # ============================================================================
 
-func _get_camera_half_view(_zoom_value: Vector2) -> Vector2:
-	# 蔚蓝式架构：Camera2D.zoom 永远 ONE，displayed_zoom 仅影响外层显示，
-	# 不改变 SubViewport 内 Camera 看到的世界范围。
-	# PixelRenderer 给 SubViewport 加了 1px slack 防止边缘瓦片被裁，
-	# 计算边界时减回去得到真实游戏视野（如默认 480×270）。
+func _get_camera_half_view(zoom_value: Vector2) -> Vector2:
+	# canvas-items 架构：Camera2D.zoom 是真实缩放，世界可见范围 = 视口尺寸 / zoom。
+	# zoom_value 在边界过渡期间平滑变化，确保边界检测与实际可见区域同步。
 	var viewport_size := get_viewport_rect().size
-	return (viewport_size - Vector2.ONE) * 0.5
+	return viewport_size * 0.5 / maxf(zoom_value.x, EPSILON)
 
 
 func _soft_clamp_to_bounds(pos: Vector2, bounds: Rect2, zoom_value: Vector2) -> Vector2:
@@ -643,7 +640,7 @@ func _draw() -> void:
 		draw_rect(local_rect, Color(1, 1, 0, 0.6), false, 2.0)
 	if dead_zone_width > 0.0 or dead_zone_height > 0.0:
 		var dz_rect := Rect2(
-			subpixel_offset - Vector2(dead_zone_width, dead_zone_height) * 0.5,
+			Vector2(-dead_zone_width, -dead_zone_height) * 0.5,
 			Vector2(dead_zone_width, dead_zone_height)
 		)
 		draw_rect(dz_rect, Color(0.2, 0.8, 1.0, 0.5), false, 1.5)
