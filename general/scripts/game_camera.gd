@@ -107,9 +107,7 @@ var _bounds_tween_t: float = 1.0
 var _bounds_tween_duration: float = 0.0
 var _bounds_tween_from: Rect2 = Rect2()
 
-# Zoom 显示值（在 _process 中指数平滑至 _target_zoom）。
-# 关键：本值不写回 Camera2D.zoom，由 PixelRenderer 在屏幕级以 DisplaySprite.scale 应用。
-# 这样 SubViewport 内部永远 1:1 渲染（pixel-perfect），缩放仅在外层做整数倍 NEAREST 上采样。
+# Zoom 显示值（在 _process 中指数平滑至 _target_zoom，然后写入 Camera2D.zoom）
 var displayed_zoom: Vector2 = Vector2.ONE
 
 # 进入锁定的位置过渡：直接驱动 _smoothed_position，绕过 follow smoothing

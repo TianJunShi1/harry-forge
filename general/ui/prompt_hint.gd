@@ -16,7 +16,7 @@ var _renderer: PixelRenderer
 
 
 func _ready() -> void:
-	# 必须在 PixelRenderer（priority=1）之后运行，保证读到当前帧已修正的 subpixel_offset
+	# 必须在 PixelRenderer（priority=1）之后运行，保证读到当前帧最新的 zoom 和 canvas_transform
 	process_priority = 2
 	_setup_material()
 	hide()

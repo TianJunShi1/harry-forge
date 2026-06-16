@@ -1,23 +1,24 @@
 # Harry Forge — 代码库说明
 
 Godot 4.6 2D 平台跳跃游戏，像素风格，银河恶魔城玩法。
-分辨率：480×270（SubViewport 内部渲染，窗口以最大整数倍缩放显示）。
+参考分辨率：480×270（Camera2D.zoom 控制可见世界范围，窗口自适应缩放）。
 
 ## 渲染架构
 
 ```
 main.tscn  ← 真正的主场景入口（project.godot 的 run/main_scene）
 └─ PixelRenderer (Node2D)           general/camera/pixel_renderer.tscn
-   ├─ SubViewport (481×271)         游戏内容在此渲染，尺寸 = game_size + 1px slack
-   │  └─ playground.tscn / 关卡     PixelRenderer.level 赋值，不再是 main_scene
-   │     ├─ GameCamera2D            关卡摄像机（整数像素对齐）
-   │     ├─ TileMapLayer / 地图
-   │     └─ Player
-   └─ DisplaySprite (Sprite2D)      SubViewport 贴图，以当前整数倍缩放居中显示
+   └─ WorldRoot (Node2D)            关卡挂在此节点下
+      ├─ CanvasModulate             全局大气色调
+      └─ playground.tscn / 关卡    PixelRenderer.level 赋值
+         ├─ GameCamera2D           关卡摄像机（直接控制 Camera2D.zoom）
+         ├─ TileMapLayer / 地图
+         └─ Player
 ```
 
-PixelRenderer 在每帧从 GameCamera 读取 `subpixel_offset`，对 DisplaySprite 反向平移，
-恢复亚像素平滑感（消除像素抖动/shimmer）。
+canvas-items 架构：游戏世界直接在原生窗口分辨率渲染。PixelRenderer 根据窗口大小
+计算 `_current_scale = min(w/480, h/270)`，通过 `GameCamera2D.set_base_zoom()` 写入
+`Camera2D.zoom`，所有运动（粒子、角色、相机）在屏幕像素级完全平滑。
 
 ## 目录结构
 
@@ -33,11 +34,11 @@ Level/           地图场景
   tileset/       图块集
 general/         通用工具
   camera/
-    pixel_renderer.tscn  像素完美渲染容器场景
+    pixel_renderer.tscn  渲染容器场景（WorldRoot + CanvasModulate）
   game_camera.tscn       关卡摄像机场景（放在关卡根节点）
   camera_bounds.tscn     摄像机区域预制体（CameraZone）
   scripts/
-    pixel_renderer.gd    PixelRenderer 脚本（自动整数倍缩放）
+    pixel_renderer.gd    PixelRenderer 脚本（缩放计算 + 关卡加载）
     game_camera.gd       GameCamera2D 脚本
     camera_bounds.gd     CameraZone 脚本
 icon/            编辑器图标
@@ -66,13 +67,9 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 - **Camera 不属于 Player**。`Camera2D` 放在关卡场景根节点（实例化 `general/game_camera.tscn`）。
 - **Player 不知道 Camera 的存在**，Camera 主动去找 Player（`"player"` 组）。
 - 区域进入/退出由 `CameraZone`（`general/camera_bounds.tscn`）负责通知 Camera。
-- **平滑频率**：Camera 的 `_smoothed_position` 更新跑在 `_physics_process` 内，与 Player `move_and_slide` 同频（60Hz）；这样高刷屏上不会出现相机用 display rate 追物理阶梯函数产生的 60Hz 节拍微抖。PixelRenderer 仍在 `_process` 读取 `subpixel_offset` 做屏幕级补偿，offset 在两个物理 tick 之间保持常数。
-- **Zoom 频率**：`displayed_zoom` 插值跑在 `_process`（display rate）。Zoom 与 physics 解耦，display rate 更新让缩放动画在高刷屏上完全平滑。
-- **Zoom 渲染架构（蔚蓝式）**：`Camera2D.zoom` **永远保持 Vector2.ONE**，缩放不在 SubViewport 内部做。`displayed_zoom` 仅作为数值由 PixelRenderer 读取，应用到 `DisplaySprite.scale = _current_scale × displayed_zoom`。
-  - 内层 SubViewport 始终 1:1 渲染，绝对 pixel-perfect、无 shimmer
-  - 外层 DisplaySprite 用 NEAREST 在物理像素上做缩放：整数 zoom（2.0/3.0）每个像素完美整数倍；非整数 zoom（1.3）有的物理像素 3px 宽有的 4px 宽，但**每个像素仍绝对锐利**（蔚蓝的"sharp non-integer zoom"效果）
-  - `subpixel_offset` 补偿公式：`offset × _current_scale × zoom_factor`（effective_scale 物理像素）
-  - 注意：本架构下 zoom < 1 表现为"显示缩小+黑边"，不再是"看到更多世界"。"看更多"需用其他机制（如调整 SubViewport 大小，未实现）
+- **平滑频率**：Camera 的 `_smoothed_position` 更新跑在 `_physics_process` 内，与 Player `move_and_slide` 同频（60Hz），消除高刷屏下"display rate 追物理阶梯函数"产生的节拍微抖。
+- **Zoom 频率**：`displayed_zoom` 插值跑在 `_process`（display rate），与物理解耦，缩放动画在高刷屏上完全平滑。
+- **Zoom 渲染**：`displayed_zoom` 在每帧 `_process` 末尾直接写入 `Camera2D.zoom`，原生 canvas-items 渲染。zoom > 1 放大（看到更少世界），zoom < 1 缩小（看到更多世界）。`zoom_override` 是相对 `default_zoom` 的倍数（1.0=不变，2.0=放大 2×）。
 
 ### 使用步骤
 
@@ -106,7 +103,7 @@ playground.tscn  测试关卡（PixelRenderer.level 引用，不再是 main_scen
 | `bounds_source` | AUTO_FROM_COLLISION（用 CollisionShape2D）/ CUSTOM_FROM_MARKER（用 BoundsCenter Marker2D） |
 | `custom_bounds_size` | 仅 CUSTOM_FROM_MARKER 时生效，摄像机边界大小 |
 | `zoom_override` | 进入此区域时切换的 zoom（Vector2.ZERO = 沿用默认） |
-| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 生效；蔚蓝式外层缩放，任意值都锐利无 LINEAR 模糊） |
+| `hidden_room_zoom` | 隐藏房间专用 zoom 标量（仅 LOCK_TO_CENTER 生效；1.0=不变，2.0=放大 2×） |
 | `zone_priority` | 区域优先级，嵌套时高优先级覆盖低优先级 |
 | `transition_duration` | 过渡时长（秒） |
 
@@ -117,7 +114,7 @@ CameraZone (Area2D)
   mode = LOCK_TO_CENTER
   bounds_source = CUSTOM_FROM_MARKER
   custom_bounds_size = Vector2(256, 180)  ← 这个房间的边界大小
-  hidden_room_zoom = 2.0                  ← 进入时镜头放大 2x；整数值才能保持 pixel-perfect
+  hidden_room_zoom = 2.0                  ← 进入时镜头放大 2x（相对倍数）
   zone_priority = 10                      ← 高于外层普通区域
   transition_duration = 0.6
   CollisionShape2D   ← 做大一些，提前触发
@@ -151,7 +148,7 @@ camera.snap_to_target()
 
 ## 关卡切换
 
-`PixelRenderer` 是**唯一**的关卡装载入口；外部代码不应直接向 `SubViewport` add_child。
+`PixelRenderer` 是**唯一**的关卡装载入口；外部代码不应直接向 `WorldRoot` add_child。
 
 ```gdscript
 # 切换关卡
@@ -169,7 +166,7 @@ GameCamera 同样用 `node_added` signal 监听 `"player"` 组节点加入树（
 玩家也可以晚于关卡实例化加入。
 
 > **注意**：玩家跨关卡持久化（保留血量、物品等）当前**未实现**。
-> 未来如果需要，建议把 Player 提到 SubViewport 的直接子节点，或引入 SaveManager autoload。
+> 未来如果需要，建议把 Player 提到 WorldRoot 的直接子节点，或引入 SaveManager autoload。
 
 ## 物理层
 
@@ -189,7 +186,7 @@ GameCamera 同样用 `node_added` signal 监听 `"player"` 组节点加入树（
 ```
 main.tscn
 ├─ PixelRenderer              [现有]
-│  └─ SubViewport → <当前关卡>
+│  └─ WorldRoot → <当前关卡>
 └─ TransitionLayer (CanvasLayer, layer=100)
    └─ FadeRect (ColorRect, 全屏黑, alpha 由 LevelManager tween)
 

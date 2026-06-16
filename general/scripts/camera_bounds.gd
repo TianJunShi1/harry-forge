@@ -48,12 +48,7 @@ enum BoundsSource {
 ## 隐藏房间专用 zoom 标量（仅 mode = LOCK_TO_CENTER 时生效）。
 ## 1.0 = 无效果；>1 = 放大（看更少，画面聚焦感）。
 ## 非 1.0 时会覆盖 zoom_override；过渡时长由 GameCamera2D 的 zoom_smoothing 控制。
-##
-## 蔚蓝式架构下任何 zoom 值都不会有 LINEAR 模糊：
-## - 整数（2.0/3.0）：物理像素完美整数倍，pixel-perfect
-## - 非整数（1.3/1.5）：物理像素宽度不均（有的 3px 有的 4px），但每个像素绝对锐利
-##
-## 注意：本架构下 zoom < 1 是"画面缩小+黑边"而非"看更多世界"，请避开 < 1 的值。
+## 是相对倍数：2.0 表示在基础缩放之上再放大 2 倍。
 @export_range(1.0, 4.0, 0.05) var hidden_room_zoom: float = 1.0
 
 @export_group("Priority & Transition")
@@ -99,7 +94,7 @@ func _resolve_camera() -> void:
 		_camera = _find_camera_in_subtree(level_root)
 		if is_instance_valid(_camera):
 			return
-	# 子树找不到时全局兜底（直接运行单关卡、不经 SubViewport 的场景）
+	# 子树找不到时全局兜底（直接运行单关卡场景）
 	for n in get_tree().get_nodes_in_group("game_camera"):
 		if n is GameCamera2D and is_instance_valid(n):
 			_camera = n
@@ -107,12 +102,12 @@ func _resolve_camera() -> void:
 	push_warning("CameraZone：找不到 GameCamera2D。请把 GameCamera 加入 'game_camera' 组，或显式指定 camera_path。")
 
 
-# 沿 parent 链向上，找到直接挂在 WorldRoot（"world_root" 组）或 SubViewport 下的节点（即关卡根节点）
+# 沿 parent 链向上，找到直接挂在 WorldRoot（"world_root" 组）下的节点（即关卡根节点）
 func _get_level_root() -> Node:
 	var node := get_parent()
 	while node != null:
 		var parent := node.get_parent()
-		if parent is SubViewport or (parent != null and parent.is_in_group(&"world_root")):
+		if parent != null and parent.is_in_group(&"world_root"):
 			return node
 		node = parent
 	return null
