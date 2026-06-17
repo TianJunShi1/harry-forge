@@ -12,6 +12,7 @@ const INPUT_DEADZONE : float = 0.1
 # request_drop_through 时给 velocity.y 的最小下沉速度，防止脚还卡在平台上不掉
 const DROP_THROUGH_MIN_VELOCITY : float = 30.0
 
+@export var run_speed: float = 150.0
 @export var air_speed : float = 160.0
 @export var jump_velocity : float = -380.0
 
@@ -192,6 +193,9 @@ func has_horizontal_input() -> bool:
 ## GameCamera2D 调用此方法获取前视意图。
 ## 返回 -1(左)、0(停止)、1(右)。
 func get_camera_facing_intent() -> float:
+	# 登墙跳锁定期内输入仍朝向墙壁，但视觉朝向已翻转——用视觉朝向驱动前视避免镜头反拉
+	if wall_jump_lock_timer > 0.0:
+		return -1.0 if anim.flip_h else 1.0
 	return direction.x
 
 

@@ -8,7 +8,6 @@ class_name PlayerstateRun extends Playerstate
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 # 【修改】删除本地 update_facing_direction()，改用 player.update_facing() 统一管理
 
-var move_speed: float = 150.0
 
 #region /// 核心状态生命周期
 func init() -> void:
@@ -52,7 +51,7 @@ func physics_process(_delta: float) -> Playerstate:
 		return idle_state
 		
 	# 2. 纯粹处理物理移动
-	player.velocity.x = player.direction.x * move_speed
+	player.velocity.x = player.direction.x * player.run_speed
 		
 	return null
 #endregion
