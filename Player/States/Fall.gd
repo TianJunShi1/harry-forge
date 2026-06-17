@@ -59,7 +59,7 @@ func physics_process(delta: float) -> Playerstate:
 	player.velocity.x = player.direction.x * player.air_speed
 
 	# 贴墙检测：锁定期结束、贴墙中、按住朝墙方向
-	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor():
+	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor() and player.velocity.y > 0:
 		var wall_n := player.get_wall_normal()
 		# direction.x 与法线方向相反 = 朝向墙壁
 		if not is_zero_approx(player.direction.x) and signf(player.direction.x) != signf(wall_n.x):

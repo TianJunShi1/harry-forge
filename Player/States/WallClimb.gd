@@ -32,7 +32,7 @@ func physics_process(delta: float) -> Playerstate:
 	# 体力耗尽 → WallSlide
 	if player.wall_grab_timer <= 0.0:
 		player.wall_grab_timer = 0.0
-		return wall_slide_state
+		return fall_state
 
 	# 释放 grab 键 → WallSlide
 	if not Input.is_action_pressed("grab"):

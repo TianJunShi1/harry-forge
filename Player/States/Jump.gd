@@ -68,11 +68,5 @@ func physics_process(_delta: float) -> Playerstate:
 	if player.velocity.y >= 0:
 		return fall_state
 
-	# 上升阶段贴墙检测（锁定期外）
-	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor():
-		var wall_n := player.get_wall_normal()
-		if not is_zero_approx(player.direction.x) and signf(player.direction.x) != signf(wall_n.x):
-			return wall_slide_state
-
 	return null
 #endregion
