@@ -368,6 +368,7 @@ z_index = 1
 collision_mask = 15
 script = ExtResource("1_l8h54")
 initial_state = NodePath("states/Idle")
+wall_return_speed_factor = 0.6
 
 [node name="states" type="Node" parent="." unique_id=804292152]
 
