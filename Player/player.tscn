@@ -11,6 +11,8 @@
 [ext_resource type="Texture2D" uid="uid://5b106pwg6qd2" path="res://Player/Sprites/male_hero_template-fall_loop.png" id="5_od3ui"]
 [ext_resource type="Script" uid="uid://dnciec7hj64bm" path="res://Player/States/Fall.gd" id="5_x3vf3"]
 [ext_resource type="Script" uid="uid://bb380bsahjjtu" path="res://Player/States/Crouch.gd" id="6_5htga"]
+[ext_resource type="Script" uid="uid://3s4lx8ipcf5a" path="res://Player/States/WallClimb.gd" id="7_gu6f8"]
+[ext_resource type="Script" uid="uid://ct0v446dh720y" path="res://Player/States/WallSlide.gd" id="8_dkpta"]
 [ext_resource type="Texture2D" uid="uid://8abdukwy2ecj" path="res://Player/Sprites/male_hero_template-walk.png" id="11_apopc"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_iyprq"]
@@ -388,6 +390,14 @@ script = ExtResource("5_x3vf3")
 [node name="Crouch" type="Node" parent="states" unique_id=542683905]
 unique_name_in_owner = true
 script = ExtResource("6_5htga")
+
+[node name="WallClimb" type="Node" parent="states" unique_id=1519835106]
+unique_name_in_owner = true
+script = ExtResource("7_gu6f8")
+
+[node name="WallSlide" type="Node" parent="states" unique_id=541538915]
+unique_name_in_owner = true
+script = ExtResource("8_dkpta")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=579198571]
 position = Vector2(0, -16)
