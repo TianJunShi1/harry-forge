@@ -36,6 +36,8 @@ func enter() -> void:
 	if player.wall_normal != Vector2.ZERO:
 		player.velocity.y = player.jump_velocity
 		player.velocity.x = player.wall_normal.x * player.wall_jump_h_speed
+		# 立即翻转朝向，面向逃离方向（蔚蓝同款行为）
+		player.anim.flip_h = player.wall_normal.x < 0
 		player.wall_normal = Vector2.ZERO
 	elif not is_bouncing:
 		player.velocity.y = player.jump_velocity
