@@ -42,6 +42,10 @@ signal bounce_requested
 var wall_normal: Vector2 = Vector2.ZERO
 var wall_grab_timer: float = 0.0
 var wall_jump_lock_timer: float = 0.0
+var wall_last_jump_normal: Vector2 = Vector2.ZERO
+
+## 登墙跳后按回同侧方向的横向速度系数（0=完全阻断, 1=无削减）
+@export_range(0.0, 1.0, 0.05) var wall_return_speed_factor: float = 0.2
 #endregion
 
 #region /// ❤️ 血量
@@ -110,6 +114,7 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		coyote_timer = coyote_duration
 		wall_grab_timer = wall_grab_duration
+		wall_last_jump_normal = Vector2.ZERO
 	else:
 		coyote_timer = maxf(coyote_timer - delta, 0.0)
 

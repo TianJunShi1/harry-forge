@@ -60,7 +60,12 @@ func process(_delta: float) -> Playerstate:
 func physics_process(_delta: float) -> Playerstate:
 	# 登墙跳锁定期内不覆盖横向速度，让推力弧线自然衰减
 	if player.wall_jump_lock_timer <= 0.0:
-		player.velocity.x = player.direction.x * player.air_speed
+		var speed_factor := 1.0
+		if player.wall_last_jump_normal != Vector2.ZERO \
+				and not is_zero_approx(player.direction.x) \
+				and signf(player.direction.x) != signf(player.wall_last_jump_normal.x):
+			speed_factor = player.wall_return_speed_factor
+		player.velocity.x = player.direction.x * player.air_speed * speed_factor
 
 	if not is_bouncing and Input.is_action_just_released("jump") and player.velocity.y < 0:
 		player.velocity.y *= EARLY_RELEASE_MULTIPLIER

@@ -56,7 +56,12 @@ func process(_delta: float) -> Playerstate:
 	return null
 
 func physics_process(delta: float) -> Playerstate:
-	player.velocity.x = player.direction.x * player.air_speed
+	var speed_factor := 1.0
+	if player.wall_last_jump_normal != Vector2.ZERO \
+			and not is_zero_approx(player.direction.x) \
+			and signf(player.direction.x) != signf(player.wall_last_jump_normal.x):
+		speed_factor = player.wall_return_speed_factor
+	player.velocity.x = player.direction.x * player.air_speed * speed_factor
 
 	# 贴墙检测：锁定期结束、贴墙中、按住朝墙方向
 	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor() and player.velocity.y > 0:

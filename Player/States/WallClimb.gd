@@ -18,6 +18,7 @@ func exit() -> void:
 
 func handle_input(event: InputEvent) -> Playerstate:
 	if event.is_action_pressed("jump"):
+		player.wall_last_jump_normal = player.wall_normal
 		player.wall_jump_lock_timer = player.wall_jump_lock_duration
 		return jump_state
 	return null
