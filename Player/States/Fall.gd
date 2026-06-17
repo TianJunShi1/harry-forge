@@ -51,8 +51,9 @@ func process(_delta: float) -> Playerstate:
 	if player.anim and player.anim.animation == "fall" and not player.anim.is_playing():
 		player.anim.play("fall_loop")
 	
-	# 【修改】朝向翻转改为调用 player.update_facing()
-	player.update_facing()
+	# 锁定期内保持登墙跳设定的朝向，不被输入方向覆盖
+	if player.wall_jump_lock_timer <= 0.0:
+		player.update_facing()
 	return null
 
 func physics_process(delta: float) -> Playerstate:

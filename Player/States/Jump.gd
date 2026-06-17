@@ -55,8 +55,9 @@ func handle_input(_event : InputEvent) -> Playerstate:
 	return null
 
 func process(_delta: float) -> Playerstate:
-	# 【修改】朝向翻转改为调用 player.update_facing()，不再重复写 flip_h 逻辑
-	player.update_facing()
+	# 锁定期内保持登墙跳设定的朝向，不被输入方向覆盖
+	if player.wall_jump_lock_timer <= 0.0:
+		player.update_facing()
 	return null
 
 func physics_process(_delta: float) -> Playerstate:
