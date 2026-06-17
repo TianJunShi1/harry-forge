@@ -2,6 +2,7 @@
 class_name PlayerstateJump extends Playerstate
 
 @onready var fall_state: PlayerstateFall = %Fall
+@onready var wall_slide_state: PlayerstateWallSlide = %WallSlide
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 # 【修改】删除本地 air_speed，改用 player.air_speed 统一管理
 # 【修改】删除本地 jump_velocity，改用 player.jump_velocity 统一管理
@@ -30,13 +31,15 @@ func enter() -> void:
 	# 只要真正进入跳跃状态，立刻消费土狼时间（双保险）
 	# 防止 coyote_timer 还有剩余时被再次利用
 	player.coyote_timer = 0.0
-	
-	# 【核心修改】只有在"不是弹跳"的时候，才赋予普通跳跃的速度！
-	# 防止弹跳板给的超大速度在这里被强行重置为 jump_velocity
-	if not is_bouncing:
+
+	# 登墙跳：wall_normal 由 WallSlide/WallClimb 在进入 Jump 前写入，这里消费并清零
+	if player.wall_normal != Vector2.ZERO:
 		player.velocity.y = player.jump_velocity
-		
-	# 【修改】加空判断，重构场景时更不容易报空引用
+		player.velocity.x = player.wall_normal.x * player.wall_jump_h_speed
+		player.wall_normal = Vector2.ZERO
+	elif not is_bouncing:
+		player.velocity.y = player.jump_velocity
+
 	if player.anim:
 		player.anim.play("jump")
 
@@ -55,16 +58,21 @@ func process(_delta: float) -> Playerstate:
 	return null
 
 func physics_process(_delta: float) -> Playerstate:
-	# 【修改】air_speed 改为读取 player.air_speed
-	player.velocity.x = player.direction.x * player.air_speed
-	
-	# 【核心修改】如果是被弹跳板弹飞的，禁止触发小跳减速！
-	# 【修改】ui_accept 统一改为 jump
+	# 登墙跳锁定期内不覆盖横向速度，让推力弧线自然衰减
+	if player.wall_jump_lock_timer <= 0.0:
+		player.velocity.x = player.direction.x * player.air_speed
+
 	if not is_bouncing and Input.is_action_just_released("jump") and player.velocity.y < 0:
 		player.velocity.y *= EARLY_RELEASE_MULTIPLIER
-		
+
 	if player.velocity.y >= 0:
 		return fall_state
-		
+
+	# 上升阶段贴墙检测（锁定期外）
+	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor():
+		var wall_n := player.get_wall_normal()
+		if not is_zero_approx(player.direction.x) and signf(player.direction.x) != signf(wall_n.x):
+			return wall_slide_state
+
 	return null
 #endregion

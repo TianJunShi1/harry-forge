@@ -30,6 +30,20 @@ var drop_through_timer : float = 0.0
 ## 当玩家被弹跳板抛起时发出。Jump 状态监听此 signal 以避免被普通跳跃逻辑覆盖速度。
 signal bounce_requested
 
+#region /// 🧗 墙壁系统
+@export_group("Wall")
+@export var wall_slide_speed: float = 60.0
+@export var wall_climb_speed: float = 80.0
+@export var wall_climb_drop_speed: float = 40.0
+@export var wall_grab_duration: float = 2.0
+@export var wall_jump_h_speed: float = 220.0
+@export var wall_jump_lock_duration: float = 0.25
+
+var wall_normal: Vector2 = Vector2.ZERO
+var wall_grab_timer: float = 0.0
+var wall_jump_lock_timer: float = 0.0
+#endregion
+
 #region /// ❤️ 血量
 @export var max_hp: int = 6
 var current_hp: int
@@ -63,6 +77,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	current_hp = max_hp
+	wall_grab_timer = wall_grab_duration
 	initialize_states()
 	# _ready 末尾发信号，确保所有已连接的监听者（HUD）都能拿到正确初值
 	hp_changed.emit(current_hp, max_hp)
@@ -94,8 +109,11 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		coyote_timer = coyote_duration
+		wall_grab_timer = wall_grab_duration
 	else:
 		coyote_timer = maxf(coyote_timer - delta, 0.0)
+
+	wall_jump_lock_timer = maxf(wall_jump_lock_timer - delta, 0.0)
 
 
 func _process(delta: float) -> void:

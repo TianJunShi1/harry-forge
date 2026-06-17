@@ -3,7 +3,8 @@ class_name PlayerstateFall extends Playerstate
 
 @onready var idle_state: PlayerstateIdle = %Idle
 @onready var run_state: PlayerstateRun = %Run
-@onready var jump_state: PlayerstateJump = %Jump 
+@onready var jump_state: PlayerstateJump = %Jump
+@onready var wall_slide_state: PlayerstateWallSlide = %WallSlide
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 # 【修改】删除本地 air_speed，改用 player.air_speed 统一管理
 
@@ -55,13 +56,18 @@ func process(_delta: float) -> Playerstate:
 	return null
 
 func physics_process(delta: float) -> Playerstate:
-	# 【修改】air_speed 改为读取 player.air_speed
 	player.velocity.x = player.direction.x * player.air_speed
-	
-	# 【跳跃缓冲计时逻辑】如果计时器被激活了（大于0），就开始倒计时
+
+	# 贴墙检测：锁定期结束、贴墙中、按住朝墙方向
+	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor():
+		var wall_n := player.get_wall_normal()
+		# direction.x 与法线方向相反 = 朝向墙壁
+		if not is_zero_approx(player.direction.x) and signf(player.direction.x) != signf(wall_n.x):
+			return wall_slide_state
+
 	if buffer_timer > 0:
 		buffer_timer -= delta
-	
+
 	# 检查是否落地
 	if player.is_on_floor():
 		# 落地时检查缓冲计时器。如果还有剩余时间，说明玩家刚才提前按了跳跃！
