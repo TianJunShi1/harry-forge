@@ -24,9 +24,7 @@ func handle_input(event: InputEvent) -> Playerstate:
 	return null
 
 func process(_delta: float) -> Playerstate:
-	# 面向逃离方向（与 wall_normal 同侧），而非输入方向（输入朝墙）
-	if player.anim:
-		player.anim.flip_h = player.wall_normal.x < 0
+	player.update_facing()
 	return null
 
 func physics_process(_delta: float) -> Playerstate:
