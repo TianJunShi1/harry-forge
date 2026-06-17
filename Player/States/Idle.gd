@@ -8,8 +8,6 @@ class_name PlayerstateIdle extends Playerstate
 @onready var fall_state: PlayerstateFall = %Fall
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 
-# 地面摩擦力
-var friction: float = 800.0 
 
 #region /// 核心状态生命周期
 func init() -> void:
@@ -49,8 +47,7 @@ func physics_process(_delta: float) -> Playerstate:
 	if player.has_horizontal_input():
 		return run_state
 		
-	# 微微滑行的摩擦力逻辑
-	player.velocity.x = move_toward(player.velocity.x, 0, friction * _delta)
+	player.velocity.x = move_toward(player.velocity.x, 0.0, player.run_deceleration * _delta)
 	
 	return null
 #endregion

@@ -68,7 +68,8 @@ func physics_process(_delta: float) -> Playerstate:
 				and not is_zero_approx(player.direction.x) \
 				and signf(player.direction.x) != signf(player.wall_last_jump_normal.x):
 			speed_factor = player.wall_return_speed_factor
-		player.velocity.x = player.direction.x * player.air_speed * speed_factor
+		var target := player.direction.x * player.air_speed * speed_factor
+		player.velocity.x = move_toward(player.velocity.x, target, player.air_acceleration * _delta)
 
 	if not is_bouncing and Input.is_action_just_released("jump") and player.velocity.y < 0:
 		player.velocity.y *= EARLY_RELEASE_MULTIPLIER

@@ -13,7 +13,10 @@ const INPUT_DEADZONE : float = 0.1
 const DROP_THROUGH_MIN_VELOCITY : float = 30.0
 
 @export var run_speed: float = 150.0
+@export var run_acceleration: float = 1800.0
+@export var run_deceleration: float = 1600.0
 @export var air_speed : float = 160.0
+@export var air_acceleration: float = 1000.0
 @export var jump_velocity : float = -380.0
 
 @export var gravity : float = 900.0

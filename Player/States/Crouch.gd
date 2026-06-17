@@ -9,8 +9,6 @@ class_name PlayerstateCrouch extends Playerstate
 # 【修改】删除本地 anim 引用，改用 player.anim 统一访问
 @onready var one_way_platform_ray_cast: RayCast2D = %OneWayPlatformRayCast
 
-# 下蹲时的摩擦力
-var friction: float = 1000.0 
 
 #region /// 核心状态生命周期
 func init() -> void:
@@ -50,8 +48,8 @@ func physics_process(_delta: float) -> Playerstate:
 	if player.direction.y <= player.INPUT_DEADZONE:
 		return idle_state
 
-	# 平地上的摩擦力滑行逻辑（依然保留）
-	player.velocity.x = move_toward(player.velocity.x, 0.0, friction * _delta)
+	# 下蹲刹车比 Idle 略强
+	player.velocity.x = move_toward(player.velocity.x, 0.0, player.run_deceleration * 1.2 * _delta)
 
 	return null
 #endregion

@@ -50,8 +50,9 @@ func physics_process(_delta: float) -> Playerstate:
 	if not player.has_horizontal_input():
 		return idle_state
 		
-	# 2. 纯粹处理物理移动
-	player.velocity.x = player.direction.x * player.run_speed
+	# 2. 纯粹处理物理移动（加速曲线，约 5 帧到达最高速）
+	var target := player.direction.x * player.run_speed
+	player.velocity.x = move_toward(player.velocity.x, target, player.run_acceleration * _delta)
 		
 	return null
 #endregion
