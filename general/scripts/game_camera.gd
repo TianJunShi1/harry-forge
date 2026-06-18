@@ -127,6 +127,8 @@ var _look_ahead_value: float = 0.0
 var _look_y_value: float = 0.0
 var _look_y_block_timer: float = 0.0
 var _look_y_hold_timer: float = 0.0
+# look_y 松开后的回中阶段。回中完成前 Y 轴死区不能接管，否则相机会停在偏移残留处。
+var _look_y_returning: bool = false
 var _initialized: bool = false
 
 ## canvas-items 架构下相机直接使用浮点位置，亚像素平滑由原生渲染保证，无需 subpixel_offset。
@@ -345,6 +347,7 @@ func snap_to_target() -> void:
 	_look_ahead_value = 0.0
 	_look_y_value = 0.0
 	_look_y_hold_timer = 0.0
+	_look_y_returning = false
 	_look_y_block_timer = look_y_after_spawn_delay
 
 
@@ -363,8 +366,8 @@ func _resort_stack() -> void:
 func _recompute_active_zone() -> void:
 	if _zone_stack.is_empty():
 		_begin_bounds_transition(Rect2(), false, 0.4)
-		_begin_lock_transition(false, Vector2.ZERO, 0.4)
 		_target_zoom = default_zoom
+		_begin_lock_transition(false, Vector2.ZERO, 0.4)
 		return
 
 	var top: Dictionary = _zone_stack.back()
@@ -375,11 +378,10 @@ func _recompute_active_zone() -> void:
 	var lock_center: Vector2 = bounds.position + bounds.size * 0.5
 	var zoom_override: Vector2 = top.get("zoom_override", Vector2.ZERO)
 
+	# _begin_lock_transition 会按 _target_zoom 夹取 lock center，必须先更新 zoom 目标。
+	_target_zoom = zoom_override * default_zoom if zoom_override != Vector2.ZERO else default_zoom
 	_begin_bounds_transition(bounds, has_bounds, duration)
 	_begin_lock_transition(lock_to_center, lock_center, duration)
-	# zoom_override 是相对于 default_zoom 的倍数（1.0=不变，2.0=放大 2×）。
-	# 乘以 default_zoom 得到在 canvas-items 下写入 Camera2D.zoom 的绝对值。
-	_target_zoom = zoom_override * default_zoom if zoom_override != Vector2.ZERO else default_zoom
 
 
 func _begin_bounds_transition(new_bounds: Rect2, has_bounds: bool, duration: float) -> void:
@@ -418,12 +420,14 @@ func _begin_lock_transition(lock_to_center: bool, center: Vector2, duration: flo
 		# 玩家若按住 S 进入 lock，残留的 look_y 偏移会在退出时第一帧污染目标位置；
 		# 进入 lock 时也清零，确保 lock 中心计算与玩家观察意图无关
 		_look_y_value = 0.0
+		_look_y_returning = false
 	else:
 		# 退出锁定：_smoothed_position 留在当前位置（通常是 lock_center 附近），
 		# follow smoothing 负责将相机平滑地引导回玩家，无需额外 tween
 		_lock_transition_active = false
 		_look_ahead_value = 0.0
 		_look_y_value = 0.0
+		_look_y_returning = false
 
 
 # ============================================================================
@@ -458,7 +462,7 @@ func _compute_desired_position(delta: float) -> Vector2:
 	# 直接叠加到 target_pos，由外层 follow_smoothing 统一平滑，无需独立缓动
 	target_pos.y += vertical_offset
 
-	# 视线偏移：玩家静止地面按 W/S 时，镜头向上/下平移预览
+	# 视线偏移：玩家静止地面按 W/S 时，镜头上/下平移预览
 	# 注意：只更新 _look_y_value，不在此处叠加到 target_pos——
 	# 必须等软边界 clamp 完成后再加，否则 look_y 偏移会被软区阻力抵消，
 	# 导致靠近边界时两个方向都无法观察。
@@ -468,9 +472,14 @@ func _compute_desired_position(delta: float) -> Vector2:
 			if absf(y_intent) < 0.01:
 				# 无意图：重置持续计时器，让摄像机平滑回中
 				_look_y_hold_timer = 0.0
+				if absf(_look_y_value) > EPSILON:
+					_look_y_returning = true
 				_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
+				if absf(_look_y_value) < EPSILON:
+					_look_y_value = 0.0
 			else:
 				# 有意图：累积持续时长，到达阈值后才开始驱动偏移
+				_look_y_returning = false
 				_look_y_hold_timer = minf(_look_y_hold_timer + delta, look_y_hold_delay)
 				if _look_y_hold_timer >= look_y_hold_delay:
 					_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-look_y_engage_speed * delta))
@@ -479,7 +488,11 @@ func _compute_desired_position(delta: float) -> Vector2:
 					_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
 		else:
 			_look_y_hold_timer = 0.0
+			if absf(_look_y_value) > EPSILON:
+				_look_y_returning = true
 			_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
+			if absf(_look_y_value) < EPSILON:
+				_look_y_value = 0.0
 
 	# 前视偏移
 	if look_ahead_enabled:
@@ -515,9 +528,8 @@ func _compute_desired_position(delta: float) -> Vector2:
 				dead_zone_target.x = target_pos.x + half_w
 			else:
 				dead_zone_target.x = _smoothed_position.x
-		# look_y 活跃时跳过 Y 轴死区：_smoothed_position.y 含 look_y 偏移，
-		# 与不含 look_y 的 target_pos.y 比较会使死区把相机锁在回中途中。
-		if dead_zone_height > 0.0 and absf(_look_y_value) < EPSILON:
+		# look_y 活跃或回中时跳过 Y 轴死区：否则死区会把相机锁在残留偏移处。
+		if dead_zone_height > 0.0 and absf(_look_y_value) < EPSILON and not _look_y_returning:
 			var half_h := dead_zone_height * 0.5
 			var dy := target_pos.y - _smoothed_position.y
 			# 高速下落时绕过 Y 死区，由 fall_catch_up_smoothing 接管追赶；
@@ -541,6 +553,8 @@ func _compute_desired_position(delta: float) -> Vector2:
 	# 朝自由方向则完全不受软区阻力影响，靠近任意边界时仍能往反方向观察。
 	if look_y_enabled:
 		target_pos.y += _look_y_value * look_y_distance
+		if _look_y_returning and is_zero_approx(_look_y_value) and absf(target_pos.y - _smoothed_position.y) < 0.5:
+			_look_y_returning = false
 
 	return target_pos
 
