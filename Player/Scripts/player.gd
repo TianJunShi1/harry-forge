@@ -50,6 +50,11 @@ var wall_last_jump_normal: Vector2 = Vector2.ZERO
 
 ## 登墙跳后按回同侧方向的横向速度系数（0=完全阻断, 1=无削减）
 @export_range(0.0, 1.0, 0.05) var wall_return_speed_factor: float = 0.2
+
+## 离墙后仍可触发登墙跳的宽容窗口（与地面土狼时间同理）
+@export var wall_coyote_duration: float = 0.10
+var wall_coyote_timer: float = 0.0
+var wall_coyote_normal: Vector2 = Vector2.ZERO
 #endregion
 
 #region /// ❤️ 血量
@@ -119,8 +124,17 @@ func _physics_process(delta: float) -> void:
 		coyote_timer = coyote_duration
 		wall_grab_timer = wall_grab_duration
 		wall_last_jump_normal = Vector2.ZERO
+		wall_coyote_timer = 0.0
+		wall_coyote_normal = Vector2.ZERO
 	else:
 		coyote_timer = maxf(coyote_timer - delta, 0.0)
+
+	# 壁面土狼：贴墙且锁定期外时持续刷新，离墙后倒计时消耗
+	if is_on_wall() and not is_on_floor() and wall_jump_lock_timer <= 0.0:
+		wall_coyote_timer = wall_coyote_duration
+		wall_coyote_normal = get_wall_normal()
+	else:
+		wall_coyote_timer = maxf(wall_coyote_timer - delta, 0.0)
 
 	wall_jump_lock_timer = maxf(wall_jump_lock_timer - delta, 0.0)
 

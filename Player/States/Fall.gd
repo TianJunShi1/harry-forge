@@ -30,20 +30,25 @@ func exit() -> void:
 	pass
 
 func handle_input(_event: InputEvent) -> Playerstate:
-	# 【修改】跳跃输入移到 handle_input，比 physics_process 轮询更可靠
-	# 同时把 ui_accept 统一改为 jump
 	if _event.is_action_pressed("jump"):
-		# 1. 尝试触发土狼时间（按晚了的宽容）
-		# coyote_timer 的消费由 Jump.enter() 单点处理，本处只读取
+		# 1. 地面土狼时间
 		if player.coyote_timer > 0.0:
 			return jump_state
-			
-		# 2. 不满足土狼跳，说明是在高空下落时按的
-		# 只允许激活一次，防止疯狂按键反复刷新缓冲
+
+		# 2. 壁面土狼时间：贴墙或刚离墙的宽容窗口内直接登墙跳，无需先进入 WallSlide
+		#    和土狼时间同理——记住"最近贴过的墙"，让跳跃更响应
+		if player.wall_coyote_timer > 0.0 and player.wall_jump_lock_timer <= 0.0:
+			player.wall_normal = player.wall_coyote_normal
+			player.wall_last_jump_normal = player.wall_coyote_normal
+			player.wall_jump_lock_timer = player.wall_jump_lock_duration
+			player.wall_coyote_timer = 0.0
+			return jump_state
+
+		# 3. 跳跃缓冲：高空按下时记住，落地后立即起跳
 		if not _buffer_used:
 			buffer_timer = buffer_duration
 			_buffer_used = true
-		
+
 	return null
 
 func process(_delta: float) -> Playerstate:
