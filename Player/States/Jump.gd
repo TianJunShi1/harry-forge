@@ -32,15 +32,20 @@ func enter() -> void:
 	# 防止 coyote_timer 还有剩余时被再次利用
 	player.coyote_timer = 0.0
 
-	# 登墙跳：wall_normal 由 WallSlide/WallClimb 在进入 Jump 前写入，这里消费并清零
-	if player.wall_normal != Vector2.ZERO:
+	# 登墙跳必须由 WallSlide/WallClimb/Fall 显式开启锁定期。
+	# 残留 wall_normal 只作为过期数据清掉，不能污染普通跳跃。
+	var should_wall_jump := player.wall_normal != Vector2.ZERO and player.wall_jump_lock_timer > 0.0
+	if should_wall_jump:
 		player.velocity.y = player.jump_velocity
 		player.velocity.x = player.wall_normal.x * player.wall_jump_h_speed
 		# 立即翻转朝向，面向逃离方向（蔚蓝同款行为）
-		player.anim.flip_h = player.wall_normal.x < 0
+		if player.anim:
+			player.anim.flip_h = player.wall_normal.x < 0
 		player.wall_normal = Vector2.ZERO
-	elif not is_bouncing:
-		player.velocity.y = player.jump_velocity
+	else:
+		player.wall_normal = Vector2.ZERO
+		if not is_bouncing:
+			player.velocity.y = player.jump_velocity
 
 	if player.anim:
 		player.anim.play("jump")
