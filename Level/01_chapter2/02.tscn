@@ -33,7 +33,7 @@ shape = SubResource("RectangleShape2D_camb02")
 [node name="Entities" type="Node2D" parent="." unique_id=1301375718]
 
 [node name="Player" parent="Entities" unique_id=570274555 instance=ExtResource("1_player")]
-position = Vector2(-9, 160)
+position = Vector2(250, 160)
 
 [node name="LevelFlow" type="Node2D" parent="." unique_id=96058907]
 
@@ -43,7 +43,7 @@ spawn_id = &"from_chapter1"
 spawn_facing = 2
 
 [node name="SpawnFromChapter2" parent="LevelFlow" unique_id=700900159 instance=ExtResource("3_spawn")]
-position = Vector2(250, 534)
+position = Vector2(250, 400)
 spawn_id = &"from_chapter1_1"
 spawn_facing = 2
 
