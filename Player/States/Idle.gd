@@ -24,11 +24,8 @@ func exit() -> void:
 
 #region /// 帧更新与输入处理
 func handle_input(_event : InputEvent) -> Playerstate:
-	# 【修改】ui_accept 统一改为 jump
-	# 保留 player.is_on_floor() 检查：handle_input 由 _unhandled_input 触发，
-	# 在角色刚离地但 physics_process 还没切到 Fall 的极短窗口里，
-	# 当前状态可能仍是 Idle。不加判断会绕过 Fall 里正规的 coyote_timer 逻辑。
-	if _event.is_action_pressed("jump") and player.is_on_floor():
+	# coyote_timer > 0 覆盖"走出边缘那一帧 input 先于物理帧到来"的漏洞
+	if _event.is_action_pressed("jump") and (player.is_on_floor() or player.coyote_timer > 0.0):
 		return jump_state
 	return null
 

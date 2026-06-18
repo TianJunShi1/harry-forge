@@ -70,6 +70,15 @@ func physics_process(delta: float) -> Playerstate:
 	var target := player.direction.x * player.air_speed * speed_factor
 	player.velocity.x = move_toward(player.velocity.x, target, player.air_acceleration * delta)
 
+	# 触墙时消费跳跃缓冲为登墙跳：玩家飞向墙壁时提前按跳跃，触墙瞬间立即弹出
+	if player.is_on_wall() and not player.is_on_floor() \
+			and buffer_timer > 0.0 and player.wall_jump_lock_timer <= 0.0:
+		player.wall_normal = player.get_wall_normal()
+		player.wall_last_jump_normal = player.wall_normal
+		player.wall_jump_lock_timer = player.wall_jump_lock_duration
+		buffer_timer = 0.0
+		return jump_state
+
 	# 贴墙检测：锁定期结束、贴墙中、按住朝墙方向
 	if player.wall_jump_lock_timer <= 0.0 and player.is_on_wall() and not player.is_on_floor() and player.velocity.y > 0:
 		var wall_n := player.get_wall_normal()

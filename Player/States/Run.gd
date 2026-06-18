@@ -27,10 +27,9 @@ func exit() -> void:
 
 #region /// 帧更新与输入处理
 func handle_input(_event : InputEvent) -> Playerstate:
-	# 如果按下了跳跃键，且在地面上，切换到跳跃状态
-	# 【修改】ui_accept 统一改为 jump
-	# 保留 player.is_on_floor() 理由同 Idle：防止帧时序问题绕过 coyote_timer
-	if _event.is_action_pressed("jump") and player.is_on_floor():
+	# coyote_timer > 0 覆盖"走出边缘那一帧 input 先于物理帧到来"的漏洞：
+	# 上一帧落地刷新了计时器，这一帧 handle_input 时它尚未被物理帧扣减，完全有效
+	if _event.is_action_pressed("jump") and (player.is_on_floor() or player.coyote_timer > 0.0):
 		return jump_state
 	return null
 
