@@ -37,12 +37,12 @@ position = Vector2(-9, 160)
 [node name="LevelFlow" type="Node2D" parent="." unique_id=96058907]
 
 [node name="SpawnFromChapter1" parent="LevelFlow" unique_id=464551508 instance=ExtResource("3_spawn")]
-position = Vector2(-63, 150)
+position = Vector2(250, 150)
 spawn_id = &"from_chapter1"
 spawn_facing = 2
 
 [node name="SpawnFromChapter2" parent="LevelFlow" unique_id=700900159 instance=ExtResource("3_spawn")]
-position = Vector2(-61, 534)
+position = Vector2(250, 534)
 spawn_id = &"from_chapter1_1"
 spawn_facing = 2
 
