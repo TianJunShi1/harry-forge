@@ -102,6 +102,9 @@ func _run_transition(packed: PackedScene, spawn_id: StringName, direction: int) 
 			# 强制更新 is_on_floor() 缓存（apply_floor_snap 在非物理 context 下
 			# 不一定可靠），物理恢复后首帧 Idle 不会误判为 Fall。
 			new_player.move_and_slide()
+			# 等一个物理帧：让 Area2D（CameraZone）检测到玩家 body_entered 并调用
+			# push_zone，确保 _target_bounds 在 snap_to_target 读取前已更新。
+			await get_tree().physics_frame
 			var cam := _find_camera_in(new_level)
 			if cam:
 				# 显式重新挂接：load_level 同步 add_child 时新 GameCamera._ready 已跑，
