@@ -52,6 +52,8 @@ class_name GameCamera2D extends Camera2D
 @export_range(0.1, 20.0, 0.1) var look_y_engage_speed: float = 1.5
 ## 松键后回中速度（建议比 engage 快，让回弹干脆）
 @export_range(0.1, 20.0, 0.1) var look_y_return_speed: float = 3.0
+## snap_to_target 后屏蔽 look_y 输入的冷却时长（秒）；防止切关/瞬移后仍按着方向键立刻触发向上/下观察
+@export_range(0.0, 2.0, 0.05) var look_y_after_spawn_delay: float = 0.25
 
 @export_group("Dead Zone")
 ## 死区宽度（像素）。X 轴：目标在此范围内水平移动相机不跟随。0 = 禁用
@@ -121,6 +123,7 @@ var _smoothed_position: Vector2
 var _facing_target: float = 0.0
 var _look_ahead_value: float = 0.0
 var _look_y_value: float = 0.0
+var _look_y_block_timer: float = 0.0
 var _initialized: bool = false
 
 ## canvas-items 架构下相机直接使用浮点位置，亚像素平滑由原生渲染保证，无需 subpixel_offset。
@@ -171,6 +174,8 @@ func _physics_process(delta: float) -> void:
 	# 跑在 _physics_process 与 Player.move_and_slide 同频（60Hz），消除"渲染帧追物理阶梯函数"
 	# 产生的 60Hz 节拍微抖。指数 lerp 1-exp(-k·delta) 是连续时间常数，频率切换不影响收敛轨迹。
 	# 玩家失效（被 free / 关卡切换）时挂监听等待重生，不再每帧 O(n) 扫描整棵树
+	if _look_y_block_timer > 0.0:
+		_look_y_block_timer = maxf(_look_y_block_timer - delta, 0.0)
 	if not is_instance_valid(follow_target):
 		follow_target = null
 		_begin_player_search()
@@ -336,6 +341,7 @@ func snap_to_target() -> void:
 	_displayed_bounds = _target_bounds
 	_look_ahead_value = 0.0
 	_look_y_value = 0.0
+	_look_y_block_timer = look_y_after_spawn_delay
 
 
 # ============================================================================
@@ -453,9 +459,12 @@ func _compute_desired_position(delta: float) -> Vector2:
 	# 必须等软边界 clamp 完成后再加，否则 look_y 偏移会被软区阻力抵消，
 	# 导致靠近边界时两个方向都无法观察。
 	if look_y_enabled:
-		var y_intent := _read_look_y_intent()
-		var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
-		_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
+		if _look_y_block_timer <= 0.0:
+			var y_intent := _read_look_y_intent()
+			var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
+			_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
+		else:
+			_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
 
 	# 前视偏移
 	if look_ahead_enabled:
