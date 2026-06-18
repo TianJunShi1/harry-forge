@@ -54,6 +54,8 @@ class_name GameCamera2D extends Camera2D
 @export_range(0.1, 20.0, 0.1) var look_y_return_speed: float = 3.0
 ## snap_to_target 后屏蔽 look_y 输入的冷却时长（秒）；防止切关/瞬移后仍按着方向键立刻触发向上/下观察
 @export_range(0.0, 2.0, 0.05) var look_y_after_spawn_delay: float = 0.25
+## look_y 按键需要持续按住多长时间才开始生效（秒）；防止短暂碰键或切关后按键残留立刻触发观察
+@export_range(0.0, 1.0, 0.01) var look_y_hold_delay: float = 0.18
 
 @export_group("Dead Zone")
 ## 死区宽度（像素）。X 轴：目标在此范围内水平移动相机不跟随。0 = 禁用
@@ -124,6 +126,7 @@ var _facing_target: float = 0.0
 var _look_ahead_value: float = 0.0
 var _look_y_value: float = 0.0
 var _look_y_block_timer: float = 0.0
+var _look_y_hold_timer: float = 0.0
 var _initialized: bool = false
 
 ## canvas-items 架构下相机直接使用浮点位置，亚像素平滑由原生渲染保证，无需 subpixel_offset。
@@ -341,6 +344,7 @@ func snap_to_target() -> void:
 	_displayed_bounds = _target_bounds
 	_look_ahead_value = 0.0
 	_look_y_value = 0.0
+	_look_y_hold_timer = 0.0
 	_look_y_block_timer = look_y_after_spawn_delay
 
 
@@ -461,9 +465,20 @@ func _compute_desired_position(delta: float) -> Vector2:
 	if look_y_enabled:
 		if _look_y_block_timer <= 0.0:
 			var y_intent := _read_look_y_intent()
-			var speed := look_y_engage_speed if absf(y_intent) > 0.0 else look_y_return_speed
-			_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-speed * delta))
+			if absf(y_intent) < 0.01:
+				# 无意图：重置持续计时器，让摄像机平滑回中
+				_look_y_hold_timer = 0.0
+				_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
+			else:
+				# 有意图：累积持续时长，到达阈值后才开始驱动偏移
+				_look_y_hold_timer = minf(_look_y_hold_timer + delta, look_y_hold_delay)
+				if _look_y_hold_timer >= look_y_hold_delay:
+					_look_y_value = lerpf(_look_y_value, y_intent, 1.0 - exp(-look_y_engage_speed * delta))
+				else:
+					# 未到阈值：保持当前偏移但缓慢回中，短暂碰键不触发观察
+					_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
 		else:
+			_look_y_hold_timer = 0.0
 			_look_y_value = lerpf(_look_y_value, 0.0, 1.0 - exp(-look_y_return_speed * delta))
 
 	# 前视偏移
