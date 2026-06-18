@@ -5,13 +5,14 @@
 [node name="GameCamera" type="Camera2D" unique_id=317918204 groups=["game_camera"]]
 script = ExtResource("1_cam01")
 follow_smoothing = 4.0
-fall_catch_up_smoothing = 10.0
+fall_catch_up_smoothing = 11.0
+fall_catch_up_velocity_threshold = 125.0
 fall_catch_up_ramp = 180.0
 look_ahead_distance = 30.0
 look_ahead_turn_speed = 3.5
 look_ahead_return_speed = 2.5
-dead_zone_width = 24.0
-dead_zone_height = 80.0
+dead_zone_width = 5.0
+dead_zone_height = 5.0
 vertical_offset = -32.0
 look_y_engage_speed = 2.4
 look_y_return_speed = 6.0
