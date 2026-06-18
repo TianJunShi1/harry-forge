@@ -515,7 +515,9 @@ func _compute_desired_position(delta: float) -> Vector2:
 				dead_zone_target.x = target_pos.x + half_w
 			else:
 				dead_zone_target.x = _smoothed_position.x
-		if dead_zone_height > 0.0:
+		# look_y 活跃时跳过 Y 轴死区：_smoothed_position.y 含 look_y 偏移，
+		# 与不含 look_y 的 target_pos.y 比较会使死区把相机锁在回中途中。
+		if dead_zone_height > 0.0 and absf(_look_y_value) < EPSILON:
 			var half_h := dead_zone_height * 0.5
 			var dy := target_pos.y - _smoothed_position.y
 			# 高速下落时绕过 Y 死区，由 fall_catch_up_smoothing 接管追赶；
