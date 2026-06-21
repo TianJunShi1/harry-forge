@@ -63,7 +63,14 @@ var wall_coyote_timer: float = 0.0
 var wall_coyote_normal: Vector2 = Vector2.ZERO
 #endregion
 
+#region /// 🧩 碰撞宽容
+@export_group("Collision Assist")
+@export var corner_correction_enabled: bool = true
+@export_range(0, 8, 1) var jump_corner_correction_pixels: int = 4
+#endregion
+
 #region /// ❤️ 血量
+@export_group("Health")
 @export var max_hp: int = 6
 var current_hp: int
 
@@ -119,6 +126,7 @@ func _physics_process(delta: float) -> void:
 	if current_state:
 		change_state(current_state.physics_process(delta))
 
+	apply_jump_corner_correction(delta)
 	move_and_slide()
 
 	if drop_through_timer > 0.0:
@@ -211,6 +219,47 @@ func update_facing() -> void:
 
 func has_horizontal_input() -> bool:
 	return absf(direction.x) >= INPUT_DEADZONE
+
+
+func apply_jump_corner_correction(delta: float) -> void:
+	if not corner_correction_enabled or jump_corner_correction_pixels <= 0:
+		return
+	if velocity.y >= 0.0:
+		return
+
+	var upward_motion := Vector2(0.0, velocity.y * delta)
+	if not _is_head_blocked(global_transform, upward_motion):
+		return
+
+	for side in _get_corner_correction_order():
+		for pixels in range(1, jump_corner_correction_pixels + 1):
+			var offset := Vector2(float(side * pixels), 0.0)
+			if test_move(global_transform, offset):
+				continue
+
+			var shifted_transform := global_transform
+			shifted_transform.origin += offset
+			if not _is_head_blocked(shifted_transform, upward_motion):
+				global_position += offset
+				return
+
+
+func _is_head_blocked(from_transform: Transform2D, motion: Vector2) -> bool:
+	var collision := KinematicCollision2D.new()
+	if not test_move(from_transform, motion, collision):
+		return false
+	return collision.get_normal().y > 0.5
+
+
+func _get_corner_correction_order() -> Array[int]:
+	var preferred := 1
+	if not is_zero_approx(direction.x):
+		preferred = int(signf(direction.x))
+	elif not is_zero_approx(velocity.x):
+		preferred = int(signf(velocity.x))
+	elif anim and anim.flip_h:
+		preferred = -1
+	return [preferred, -preferred]
 
 
 func reset_wall_stamina() -> void:
