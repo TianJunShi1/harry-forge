@@ -40,8 +40,8 @@ func physics_process(_delta: float) -> Playerstate:
 	if not is_zero_approx(player.direction.x) and signf(player.direction.x) == signf(player.wall_normal.x):
 		return fall_state
 
-	# 按 grab 键且有体力 → WallClimb
-	if Input.is_action_pressed("grab") and player.wall_grab_timer > 0.0:
+	# 按 grab 键且墙面耐力足够 → WallClimb
+	if Input.is_action_pressed("grab") and player.can_grab_wall():
 		return wall_climb_state
 
 	return null
