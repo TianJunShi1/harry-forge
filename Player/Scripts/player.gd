@@ -39,11 +39,17 @@ signal bounce_requested
 @export var wall_slide_speed: float = 60.0
 @export var wall_climb_speed: float = 80.0
 @export var wall_climb_drop_speed: float = 40.0
-@export var wall_grab_duration: float = 2.0
+@export var wall_stamina_max: float = 100.0
+@export var wall_stamina_hold_drain: float = 20.0
+@export var wall_stamina_climb_drain: float = 50.0
+@export var wall_stamina_jump_cost: float = 25.0
+@export var wall_stamina_min_to_grab: float = 1.0
 @export var wall_jump_h_speed: float = 220.0
 @export var wall_jump_lock_duration: float = 0.25
 
 var wall_normal: Vector2 = Vector2.ZERO
+var wall_stamina: float = 0.0
+# 兼容旧 HUD/调试代码：现在它镜像 wall_stamina，不再表示“秒数倒计时”。
 var wall_grab_timer: float = 0.0
 var wall_jump_lock_timer: float = 0.0
 var wall_last_jump_normal: Vector2 = Vector2.ZERO
@@ -90,7 +96,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	current_hp = max_hp
-	wall_grab_timer = wall_grab_duration
+	reset_wall_stamina()
 	initialize_states()
 	# _ready 末尾发信号，确保所有已连接的监听者（HUD）都能拿到正确初值
 	hp_changed.emit(current_hp, max_hp)
@@ -122,7 +128,7 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		coyote_timer = coyote_duration
-		wall_grab_timer = wall_grab_duration
+		reset_wall_stamina()
 		wall_last_jump_normal = Vector2.ZERO
 		wall_coyote_timer = 0.0
 		wall_coyote_normal = Vector2.ZERO
@@ -205,6 +211,26 @@ func update_facing() -> void:
 
 func has_horizontal_input() -> bool:
 	return absf(direction.x) >= INPUT_DEADZONE
+
+
+func reset_wall_stamina() -> void:
+	wall_stamina = wall_stamina_max
+	wall_grab_timer = wall_stamina
+
+
+func spend_wall_stamina(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	wall_stamina = maxf(wall_stamina - amount, 0.0)
+	wall_grab_timer = wall_stamina
+
+
+func can_grab_wall() -> bool:
+	return wall_stamina >= wall_stamina_min_to_grab
+
+
+func consume_wall_jump_stamina() -> void:
+	spend_wall_stamina(wall_stamina_jump_cost)
 
 
 ## GameCamera2D 调用此方法获取前视意图。
