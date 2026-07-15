@@ -26,6 +26,20 @@ window/size/viewport_height=720
 
 enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg")
 
+[file_customization]
+
+folder_colors={
+"res://Assets/": "orange",
+"res://Assets/Fount/": "orange",
+"res://Assets/Mat/": "orange",
+"res://Assets/Prefabs/": "orange",
+"res://Assets/Scenes/": "orange",
+"res://Assets/Shader/": "orange",
+"res://Assets/Tex/": "orange",
+"res://Assets/Tilemap/": "orange",
+"res://addons/": "gray"
+}
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
